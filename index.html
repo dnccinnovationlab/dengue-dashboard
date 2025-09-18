@@ -5,7 +5,7 @@
     <style>
       #tableauViz {
         width: 1280px;
-        height: 2460px;
+        height: 2400px;
       }
     </style>
   </head>
@@ -17,17 +17,18 @@
 
       document.addEventListener("DOMContentLoaded", () => {
         const viz = new TableauViz();
-        viz.src = "https://public.tableau.com/views/DNCCDengueWatch_bn/Dashboard1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link";
+        viz.src = "https://public.tableau.com/views/DNCCDengueWatch_bn/Dashboard2?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_linksplay_count=n&:origin=viz_share_link";
         viz.toolbar = "hidden";
 
         // Optional: also set dimensions via JS
         viz.style.width = "1280px";
-        viz.style.height = "2460px";
+        viz.style.height = "2400px";
 
         document.getElementById("tableauViz").appendChild(viz);
       });
     </script>
   </body>
 </html>
+
 
 
