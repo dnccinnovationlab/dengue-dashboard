@@ -33,6 +33,6 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git add "dengue-dashboard/Dengue daily hospital case data DNCC - daily_dengue_dghs.csv"
+          git add "dengue-dashboard/daily_dengue_dghs.csv"
           git commit -m "Update dengue DGHS data $(date)" || echo "No changes to commit"
           git push
