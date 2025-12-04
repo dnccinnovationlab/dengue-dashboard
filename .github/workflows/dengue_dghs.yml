@@ -17,9 +17,9 @@ jobs:
 
       - name: Install packages
         run: |
-          Rscript -e 'install.packages(c("httr","stringr","jsonlite","dplyr","readr"))'
+          Rscript -e 'install.packages(c("httr","stringr","jsonlite","dplyr","readr"),repos="https://cloud.r-project.org")'
 
-      - name: Run scrape and update CSV
+      - name: Run dghs_dengue_dashboard_fetching and update CSV
         run: |
           Rscript dghs_dengue_dashboard_fetching.R
 
