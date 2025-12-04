@@ -2,6 +2,7 @@ library(httr)
 library(stringr)
 library(jsonlite)
 library(dplyr)
+library(readr)
 
 # ---------------------------
 # Helper function to extract chart block
@@ -127,4 +128,5 @@ existing <- read_csv(csv_path, show_col_types = FALSE)
 updated <- bind_rows(existing, final_row)
 
 write_csv(updated, csv_path)
+
 
