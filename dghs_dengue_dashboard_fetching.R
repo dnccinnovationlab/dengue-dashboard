@@ -122,12 +122,13 @@ final_row <- tibble(
 print(final_row)
 
 # Append to CSV inside repo
-csv_path <- "dengue-dashboard/daily_dengue_dghs.csv"
+csv_path <- "daily_dengue_dghs.csv"
 
 existing <- read_csv(csv_path, show_col_types = FALSE)
 updated <- bind_rows(existing, final_row)
 
 write_csv(updated, csv_path)
+
 
 
 
