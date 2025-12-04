@@ -1,5 +1,7 @@
 name: Update Dengue CSV
-
+permissions:
+  contents: write
+  
 on:
   schedule:
     - cron: "30 6 * * *"   # Runs at 12:30 PM Bangladesh time (06:30 UTC)
