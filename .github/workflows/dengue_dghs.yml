@@ -10,6 +10,8 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    env:
+      GSHEET_JSON: ${{ secrets.GSHEET_JSON }}
 
     steps:
       - name: Checkout repo
@@ -30,11 +32,3 @@ jobs:
       - name: Run scraping script
         run: |
           Rscript dghs_dengue_dashboard_fetching.R
-
-      - name: Commit and push CSV update
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git add "daily_dengue_dghs.csv"
-          git commit -m "Update dengue DGHS data $(date)" || echo "No changes to commit"
-          git push
