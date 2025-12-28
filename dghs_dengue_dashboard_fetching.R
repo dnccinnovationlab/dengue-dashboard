@@ -3,6 +3,7 @@ library(stringr)
 library(jsonlite)
 library(dplyr)
 library(readr)
+library(googlesheets4)
 
 # ---------------------------
 # Helper function to extract chart block
@@ -130,6 +131,7 @@ sheet_append(
   sheet = OUTPUT_SHEET_TAB,
   data  = final_row
 )
+
 
 
 
