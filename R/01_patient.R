@@ -1,4 +1,18 @@
 ##reading patient's data
+library(googlesheets4)
+library(dplyr)
+library(lubridate)
+library(ggmap)
+require(tidyverse)
+library(sf)
+library(rgdal)
+library(readr)
+library(tidyr)
+library(zoo)
+
+json <- Sys.getenv("GSHEET_JSON")
+writeLines(json, "service-account.json")
+gs4_auth(path = "service-account.json")
 
 dengue_data<-function(start_date,end_date,format){
 # Register Google API key (if required)
