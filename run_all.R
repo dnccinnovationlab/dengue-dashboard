@@ -9,6 +9,10 @@ library(readr)
 library(tidyr)
 library(zoo)
 
+json <- Sys.getenv("GSHEET_JSON")
+writeLines(json, "service-account.json")
+gs4_auth(path = "service-account.json")
+
 source("R/01_patient.R")
 source("R/02_death.R")
 source("R/03_risk.R")
