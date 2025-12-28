@@ -121,13 +121,17 @@ final_row <- tibble(
 
 print(final_row)
 
-# Append to CSV inside repo
-csv_path <- "daily_dengue_dghs.csv"
+# Append to google sheet
+OUTPUT_SHEET_ID  <- "1EMva389XPbDyJs80M3FZhgj8hGNCOouWzo4bz0cr0Ww"
+OUTPUT_SHEET_TAB <- "daily_dengue_dghs"
 
-existing <- read_csv(csv_path, show_col_types = FALSE)
-updated <- bind_rows(existing, final_row)
+sheet_append(
+  ss    = OUTPUT_SHEET_ID,
+  sheet = OUTPUT_SHEET_TAB,
+  data  = final_row
+)
 
-write_csv(updated, csv_path)
+
 
 
 
