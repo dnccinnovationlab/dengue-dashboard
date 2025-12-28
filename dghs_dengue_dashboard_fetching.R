@@ -5,6 +5,9 @@ library(dplyr)
 library(readr)
 library(googlesheets4)
 
+json <- Sys.getenv("GSHEET_JSON")
+writeLines(json, "service-account.json")
+gs4_auth(path = "service-account.json")
 # ---------------------------
 # Helper function to extract chart block
 # ---------------------------
@@ -131,6 +134,7 @@ sheet_append(
   sheet = OUTPUT_SHEET_TAB,
   data  = final_row
 )
+
 
 
 
