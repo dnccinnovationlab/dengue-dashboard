@@ -1,0 +1,36 @@
+name: Dengue Daily Update
+
+on:
+  schedule:
+    - cron: "30 18 * * *"   # daily at 6.30 PM Bangladesh time
+  workflow_dispatch:
+
+jobs:
+  run-dengue:
+    runs-on: ubuntu-latest
+
+    env:
+      GSHEET_JSON: ${{ secrets.GSHEET_JSON }}
+      GMAPS_API_KEY: ${{ secrets.GMAPS_API_KEY }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudunits2-dev libgdal-dev libgeos-dev libproj-dev
+
+      - name: Install R packages
+        run: |
+          Rscript -e 'install.packages(c(
+            "tidyverse","lubridate","sf","googlesheets4",
+            "ggmap","zoo","readr","sp","dplyr","rgdal","tidyr"
+          ), repos="https://cloud.r-project.org")'
+
+      - name: Run dengue pipeline
+        run: Rscript run_all.R
