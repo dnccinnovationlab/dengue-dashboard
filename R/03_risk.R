@@ -1,22 +1,5 @@
 ###reading mosquito and larval data
 
-# Load necessary packages
-library(googlesheets4)
-library(dplyr)
-library(lubridate)
-library(ggmap)
-require(tidyverse)
-library(sf)
-library(rgdal)
-library(readr)
-library(tidyr)
-library(zoo)
-
-json <- Sys.getenv("GSHEET_JSON")
-writeLines(json, "service-account.json")
-gs4_auth(path = "service-account.json")
-
-
 map <- list.files(path = "DNCC_Ward_Boundary_poly_urp_f.shp") %>%
   lapply(st_read) %>%
   purrr::reduce(st_combine) %>% #for multiple map areas
