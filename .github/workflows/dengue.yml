@@ -27,7 +27,7 @@ jobs:
 
       - name: Install R packages
         run: |
-          Rscript -e 'install.packages(c("tidyverse","lubridate","sf","googlesheets4","ggmap","zoo","readr","sp","dplyr","rgdal","tidyr"), repos="https://cloud.r-project.org")'
+          Rscript -e 'install.packages(c("lubridate","sf","googlesheets4","ggmap","zoo","readr","sp","dplyr","tidyr"), repos="https://cloud.r-project.org")'
 
       - name: Run dengue pipeline
         run: Rscript run_all.R
