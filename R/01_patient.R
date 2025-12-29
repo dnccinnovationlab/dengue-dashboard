@@ -14,7 +14,7 @@ location <- geocode(raw_data$Address1)
 data_lat_long<-data.frame(raw_data,location)
 
 ##reading shapefile
-map <- st_read(path = "DNCC_Ward_Boundary_poly_urp_f.shp", quiet = TRUE) %>%
+map <- st_read("DNCC_Ward_Boundary_poly_urp_f.shp", quiet = TRUE) %>%
   st_transform(4326)
 
 current_year<-max(year(end_date))
