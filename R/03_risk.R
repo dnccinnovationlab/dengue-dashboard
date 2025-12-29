@@ -80,11 +80,8 @@ group_by(Date,week,date_range,month,year,zone,ward,wardfc,area)%>%
 summarise(Total_patient=sum(Total_patient))%>%
 arrange(Date)
 
-map <- list.files(path = "DNCC_Ward_Boundary_poly_urp_f.shp") %>%
-  lapply(st_read) %>%
-  purrr::reduce(st_combine) %>% #for multiple map areas
-  st_transform(crs = 4326)  #projects to WGS84
-
+map <- st_read("DNCC_Ward_Boundary_poly_urp_f.shp", quiet = TRUE) %>%
+  st_transform(4326)
 
 ##extracting the centroid lat long of the wards
 map_filtered <- map %>%
