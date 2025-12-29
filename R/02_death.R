@@ -15,11 +15,8 @@ location <- geocode(raw_data$Address1)
 data_lat_long<-data.frame(raw_data,location)
 
 ##reading shapefile
-map <- list.files(path = "DNCC_Ward_Boundary_poly_urp_f.shp") %>%
-  lapply(st_read) %>%
-
-  purrr::reduce(st_combine) %>% #for multiple map areas
-  st_transform(crs = 4326)  #projects to WGS84
+map <- st_read(path = "DNCC_Ward_Boundary_poly_urp_f.shp", quiet = TRUE) %>%
+  st_transform(4326)
 
 ##adding the zones and wards to the shape file and save it
 zn_ward<-read_sheet("164-CIeR5mSutgIUPVS2EteQy1lGMSEzFhHj7iCLqzqg",sheet="zone_ward_area_list")
