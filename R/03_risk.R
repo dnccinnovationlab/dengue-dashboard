@@ -1,6 +1,6 @@
 ###reading mosquito and larval data
 
-map <- st_read(path = "DNCC_Ward_Boundary_poly_urp_f.shp", quiet = TRUE) %>%
+map <- st_read("DNCC_Ward_Boundary_poly_urp_f.shp", quiet = TRUE) %>%
   st_transform(4326)
 
 ##adding the zones and wards to the shape file and save it
