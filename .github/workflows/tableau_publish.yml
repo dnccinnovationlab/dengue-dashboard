@@ -1,0 +1,31 @@
+name: Publish Tableau Public
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # 12:00 PM Bangladesh time
+  workflow_dispatch:
+
+jobs:
+  publish-tableau:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download tabcmd
+        run: |
+          curl -L https://github.com/tableau/tabcmd/releases/download/v2.0.0/tabcmd_linux.zip -o tabcmd.zip
+          unzip tabcmd.zip
+          chmod +x tabcmd/bin/tabcmd
+
+      - name: Login to Tableau Public
+        run: |
+          ./tabcmd/bin/tabcmd login \
+            --username "${{ secrets.TABLEAU_PUBLIC_USERNAME }}" \
+            --password "${{ secrets.TABLEAU_PUBLIC_PASSWORD }}"
+
+      - name: Publish dashboard
+        run: |
+          ./tabcmd/bin/tabcmd publish tableau/DNCC_Dengue_Watch.twbx \
+            --overwrite
