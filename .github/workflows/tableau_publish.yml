@@ -27,5 +27,5 @@ jobs:
 
       - name: Publish dashboard
         run: |
-          ./tabcmd/bin/tabcmd publish tableau/DNCC_Dengue_Watch.twbx \
+          ./tabcmd/bin/tabcmd publish tableau/DNCC Dengue Watch_bn.twbx \
             --overwrite
