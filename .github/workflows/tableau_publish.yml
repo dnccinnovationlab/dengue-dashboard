@@ -15,8 +15,10 @@ jobs:
 
       - name: Download tabcmd
         run: |
-          curl -L https://downloads.tableau.com/esdalt/2023.3.0/tableau-tabcmd-2023-3-0_all.deb -o tabcmd.deb
-          sudo apt-get install -y ./tabcmd.deb
+          sudo apt-get update
+          sudo apt-get install -y curl
+          curl -L https://downloads.tableau.com/esdalt/2023.3.0/tableau-tabcmd-2023-3-0_amd64.deb -o tabcmd.deb
+          sudo dpkg -i tabcmd.deb || sudo apt-get -f install -y
 
       - name: Login to Tableau Public
         run: |
