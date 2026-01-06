@@ -12,13 +12,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Publish via Docker (tabcmd)
+      - name: Install tabcmd
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/work \
-            tableau/tabcmd:latest \
-            tabcmd login \
-              --username "${{ secrets.TABLEAU_PUBLIC_USERNAME }}" \
-              --password "${{ secrets.TABLEAU_PUBLIC_PASSWORD }}" \
-              && \
-            tabcmd publish /work/tableau/DNCC Dengue Watch_bn.twbx --overwrite
+          sudo apt-get update
+          curl -L https://downloads.tableau.com/esdalt/2023.3.0/tableau-tabcmd-2023-3-0_amd64.deb -o tabcmd.deb
+          sudo dpkg -i tabcmd.deb || sudo apt-get -f install -y
+
+      - name: Verify tabcmd location
+        run: |
+          ls -l /opt/tableau/tabcmd
+
+      - name: Login to Tableau Public
+        run: |
+          /opt/tableau/tabcmd login \
+            --username "${{ secrets.TABLEAU_PUBLIC_USERNAME }}" \
+            --password "${{ secrets.TABLEAU_PUBLIC_PASSWORD }}"
+
+      - name: Publish dashboard
+        run: |
+          /opt/tableau/tabcmd/bin/tabcmd publish tableau/DNCC_Dengue_Watch.twbx \
+            --overwrite
