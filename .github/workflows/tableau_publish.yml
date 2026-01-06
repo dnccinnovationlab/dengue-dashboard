@@ -20,7 +20,7 @@ jobs:
 
       - name: Login to Tableau Public
         run: |
-          ./tabcmd/bin/tabcmd login \
+          tabcmd login \
             --username "${{ secrets.TABLEAU_PUBLIC_USERNAME }}" \
             --password "${{ secrets.TABLEAU_PUBLIC_PASSWORD }}"
 
