@@ -2,31 +2,33 @@ name: Publish Tableau Public
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # 12:00 PM Bangladesh time
+    - cron: "0 6 * * *"   # 12 PM Bangladesh time
   workflow_dispatch:
 
 jobs:
-  publish-tableau:
+  publish:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Download tabcmd
+      - name: Install tabcmd
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl
           curl -L https://downloads.tableau.com/esdalt/2023.3.0/tableau-tabcmd-2023-3-0_amd64.deb -o tabcmd.deb
           sudo dpkg -i tabcmd.deb || sudo apt-get -f install -y
 
+      - name: Verify tabcmd location
+        run: |
+          ls -l /opt/tableau/tabcmd/bin/tabcmd
+
       - name: Login to Tableau Public
         run: |
-          tabcmd login \
+          /opt/tableau/tabcmd/bin/tabcmd login \
             --username "${{ secrets.TABLEAU_PUBLIC_USERNAME }}" \
             --password "${{ secrets.TABLEAU_PUBLIC_PASSWORD }}"
 
       - name: Publish dashboard
         run: |
-          ./tabcmd/bin/tabcmd publish tableau/DNCC Dengue Watch_bn.twbx \
+          /opt/tableau/tabcmd/bin/tabcmd publish tableau/DNCC Dengue Watch_bn.twbx \
             --overwrite
