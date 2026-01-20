@@ -346,10 +346,10 @@ mutate(Date=Date.x,
               Total_Wet_container=ifelse(is.na(Total_Wet_container)==TRUE,0,Total_Wet_container),
               Total_House=ifelse(is.na(Total_House)==TRUE,0,Total_House),
               Total_mosquito=ifelse(is.na(Total_mosquito)==TRUE,0,Total_mosquito))%>%    
-dplyr::select(Date,year,month,week,week_ju,date_range,zone,ward,wardfc,area,area_bn,population,population_density,Total_patient,Total_death,Total_mosquito,Avg_mosq_per_trap,BI,CI,HI,roll_total_patients,roll_total_deaths,roll_avg_mosq_per_trap,roll_bi,roll_ci,roll_hi)%>%
+dplyr::select(Date,year,month,week,week_ju,date_range,zone,ward,wardfc,area_bn,population,population_density,Total_patient,Total_death,Total_mosquito,Avg_mosq_per_trap,BI,CI,HI,roll_total_patients,roll_total_deaths,roll_avg_mosq_per_trap,roll_bi,roll_ci,roll_hi,risk_patients,risk_deaths,risk_adult_mosquito,risk_bi,risk_ci,risk_hi,risk_pop_den,composite_risk,category_patients_bn,category_deaths_bn,category_mosquito_bn,category_BI_bn,category_CI_bn,category_HI_bn,category_pop_den_bn,area_sqkm,composite_risk_category_bn,summary_bn)%>%
 filter(Date>=start_date)
 
-OUTPUT_SHEET_ID  <- "1EMva389XPbDyJs80M3FZhgj8hGNCOouWzo4bz0cr0Ww"
+OUTPUT_SHEET_ID  <- "1zEaxK5CyBCa_TxmFYjjcnsAQ3bxxrecfMGiKJ7gqXAU"
 OUTPUT_SHEET_TAB <- "zone_ward_patient_death_larv_mosq_risk"
 
 sheet_append(
@@ -376,10 +376,10 @@ mutate(Date=Date.x,
               Total_Wet_container=ifelse(is.na(Total_Wet_container)==TRUE,0,Total_Wet_container),
               Total_House=ifelse(is.na(Total_House)==TRUE,0,Total_House),
               Total_mosquito=ifelse(is.na(Total_mosquito)==TRUE,0,Total_mosquito))%>%  
-dplyr::select(Date,year,month,week,week_ju,date_range,zone,ward,wardfc,area,area_bn,risk_patients,risk_deaths,risk_adult_mosquito,risk_bi,risk_ci,risk_hi,risk_pop_den,composite_risk,category_patients,category_patients_bn,category_deaths,category_deaths_bn,category_mosquito,category_mosquito_bn,category_BI,category_BI_bn,category_CI,category_CI_bn,category_HI,category_HI_bn,category_pop_den,category_pop_den_bn,area_sqkm,composite_risk_category,composite_risk_category_bn,summary,summary_bn)%>%
+dplyr::select(Date,year,month,week,week_ju,date_range,zone,ward,wardfc,area,population,population_density,Total_patient,Total_death,Total_mosquito,Avg_mosq_per_trap,BI,CI,HI,roll_total_patients,roll_total_deaths,roll_avg_mosq_per_trap,roll_bi,roll_ci,roll_hi,risk_patients,risk_deaths,risk_adult_mosquito,risk_bi,risk_ci,risk_hi,risk_pop_den,composite_risk,category_patients,category_deaths,category_mosquito,category_BI,category_CI,category_HI,category_pop_den,area_sqkm,composite_risk_category,summary)%>%
 filter(Date>=start_date)
-
-OUTPUT_SHEET_ID  <- "1zEaxK5CyBCa_TxmFYjjcnsAQ3bxxrecfMGiKJ7gqXAU"
+  
+OUTPUT_SHEET_ID  <- "1EdVgB-WUZIFtjMznhnriTPZ5_HfMQkYQPZI84bR2M8A"
 OUTPUT_SHEET_TAB <- "zone_ward_patient_death_larv_mosq_risk"
 
 sheet_append(
