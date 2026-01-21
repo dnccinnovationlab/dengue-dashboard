@@ -109,7 +109,7 @@ sheet_append(
 
 ###taking the date from last updated data
 last_updated_data<-read_sheet(
-  "1EMva389XPbDyJs80M3FZhgj8hGNCOouWzo4bz0cr0Ww",
+  "1zEaxK5CyBCa_TxmFYjjcnsAQ3bxxrecfMGiKJ7gqXAU",
   sheet = "zone_ward_patient_death_larv_mosq_risk",
   range = "A:A",        # <-- Date column only
   col_types = "D"
