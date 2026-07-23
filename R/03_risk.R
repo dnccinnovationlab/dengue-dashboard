@@ -154,22 +154,16 @@ dplyr::select(Date,year,month,week,week_ju,date_range,zone,ward,area,wardfc,popu
 ##computing the risk
 ##Sort and compute 3-week rolling sums
 df <- zonal_ward_patient_death_lar_mosq_week %>%
-  mutate(Total_mosquito=ifelse(is.na(Total_mosquito)==TRUE & zone<=5,0,Total_mosquito),
-         Positive_Wet_Container=ifelse(is.na(Positive_Wet_Container)==TRUE & zone<=5,0,Positive_Wet_Container),
-         Positive_House=ifelse(is.na(Positive_House)==TRUE & zone<=5,0,Positive_House),
-         Total_Wet_container=ifelse(is.na(Total_Wet_container)==TRUE & zone<=5,0,Total_Wet_container),
-         Total_House=ifelse(is.na(Total_House)==TRUE & zone<=5,0,Total_House)
-        )%>%
   arrange(ward, year, week) %>%
   group_by(ward) %>%
   mutate(
-    roll_total_patients = rollapply(Total_patient, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE),
-    roll_total_deaths = rollapply(Total_death, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE),
-    roll_mosquito = rollapply(Total_mosquito, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE),
-    roll_pos_wet_cont = rollapply(Positive_Wet_Container, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE),
-    roll_pos_house = rollapply(Positive_House, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE),
-    roll_tot_wet_cont = rollapply(Total_Wet_container, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE),
-    roll_tot_house = rollapply(Total_House, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE)
+    roll_total_patients = rollapply(Total_patient, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE,na.rm=TRUE),
+    roll_total_deaths = rollapply(Total_death, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE,na.rm=TRUE),
+    roll_mosquito = rollapply(Total_mosquito, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE,na.rm=TRUE),
+    roll_pos_wet_cont = rollapply(Positive_Wet_Container, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE,na.rm=TRUE),
+    roll_pos_house = rollapply(Positive_House, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE,na.rm=TRUE),
+    roll_tot_wet_cont = rollapply(Total_Wet_container, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE,na.rm=TRUE),
+    roll_tot_house = rollapply(Total_House, width = 3, FUN = sum, align = "right", fill = NA, partial = TRUE,na.rm=TRUE)
    ) %>%
   mutate(roll_avg_mosq_per_trap=roll_mosquito/2,
          roll_bi=roll_pos_wet_cont/roll_tot_house,
@@ -178,9 +172,18 @@ df <- zonal_ward_patient_death_lar_mosq_week %>%
   mutate(roll_total_patients=ifelse(year>2023 & is.na(ward)==TRUE,0,roll_total_patients),
          roll_total_deaths=ifelse(year>2023 & is.na(ward)==TRUE,0,roll_total_deaths))%>%
 ungroup()%>%
-arrange(Date)
-
-
+arrange(Date)%>%
+group_by(ward) %>%
+mutate(
+   lag_patients = lag(roll_total_patients),
+    growth_rate =
+      ifelse(
+        is.na(lag_patients) | lag_patients == 0,
+        0,
+        (roll_total_patients - lag_patients) / lag_patients
+      )
+  ) %>%
+  ungroup()
 
 # Step 3: Compute min/max values (excluding 0 and NA) for normalization
 # Get all years in the dataset
@@ -199,6 +202,9 @@ mutate(month= factor(month,
   summarise(
     min_patients = min(roll_total_patients, na.rm = TRUE),
     max_patients = max(roll_total_patients, na.rm = TRUE),
+    
+    min_growth = min(growth_rate, na.rm = TRUE),
+    max_growth = max(growth_rate, na.rm = TRUE),
 
     min_deaths = min(roll_total_deaths, na.rm = TRUE),
     max_deaths = max(roll_total_deaths, na.rm = TRUE),
@@ -220,13 +226,13 @@ mutate(month= factor(month,
   ) %>%
   ungroup()
 
-	
 # Step 4: Normalize each risk indicator
 df <- df %>%
 left_join(.,non_zero_values,by=c("year","week"))%>%
 group_by(year,week)%>%
   mutate(
     risk_patients = ifelse((max_patients - min_patients)==0,0,(roll_total_patients - min_patients) / (max_patients - min_patients)),
+    risk_growth = ifelse((max_growth - min_growth)==0,0,(growth_rate - min_growth) / (max_growth - min_growth)),
     risk_deaths = ifelse((max_deaths - min_deaths)==0,0,(roll_total_deaths - min_deaths) / (max_deaths - min_deaths)),
     risk_adult_mosquito = ifelse((max_mosquito - min_mosquito)==0,0,(roll_avg_mosq_per_trap - min_mosquito) / (max_mosquito - min_mosquito)),
     risk_bi = ifelse((max_BI - min_BI)==0,0,(roll_bi - min_BI) / (max_BI - min_BI)),
@@ -235,36 +241,62 @@ group_by(year,week)%>%
     risk_pop_den =  ifelse(year<2024,(population_density/max_pop_den),(population_density - min_pop_den) / (max_pop_den - min_pop_den)))%>%
 ungroup()
 
+############################################################
+## 7. WHO-ALIGNED SUB-INDICES
+############################################################
 
 # Compute composite risk (weighted average of available risk values)
 df <- df %>%
   rowwise() %>%
-  mutate(
-    composite_risk = ifelse(is.na(risk_bi)==TRUE,(0.6)*risk_patients+(0.3)*risk_deaths+(0.1)*risk_pop_den,
-                     (0.4)*risk_patients+(0.3)*risk_deaths+(0.05)*risk_adult_mosquito+(0.05)*risk_bi+(0.05)*risk_ci+(0.05)*risk_hi+0.1*risk_pop_den))%>%
-  mutate(breeding_risk = (1/3)*risk_bi+(1/3)*risk_ci+(1/3)*risk_hi) %>%  
-ungroup()
+ mutate(
+    ##########################################################
+    ## HAZARD INDEX
+    ##########################################################
+    hazard_index =
+      (0.7 * risk_patients) +
+      (0.3 * risk_growth),
+    ##########################################################
+    ## EXPOSURE INDEX
+    ##########################################################
+    exposure_index =
+      (
+        risk_adult_mosquito +
+        risk_bi +
+        risk_ci +
+        risk_hi
+      ) / 4,
+
+    ##########################################################
+    ## VULNERABILITY INDEX
+    ##########################################################
+    vulnerability_index =
+      (0.7 * risk_pop_den) +
+      (0.3 * risk_deaths),
+############################################################
+## 8. COMPOSITE DENGUE RISK INDEX (WHO-STYLE)
+############################################################
+    composite_risk =
+      ifelse(is.na(risk_bi)==TRUE,
+      (hazard_index *
+        vulnerability_index
+      )^(1/2),
+       (hazard_index *
+        exposure_index *
+        vulnerability_index
+      )^(1/3))
+  )
+
 
 # Step 5: Compute each year 3 equal spaced cutoffs for each indicator
 
 cut_with_zero_category <- function(x) {
-  if (length(x) == 0) {
-    return(factor(rep("Not Available", length(x)),
-                  levels = c("Zero", "Low", "Moderate", "High", "Not Available")))
-  }
-  # Calculate cut width excluding zeros
-  cut <- (max(x, na.rm = TRUE) - min(x, na.rm = TRUE)) / 3
-  
-  # Classify
-  result <- ifelse(
+ result<-ifelse(
     is.na(x), "Not Available",
-      ifelse(x == 1, "High",  # PRIORITIZE value 1 as "High"
         ifelse(
-          x >= 0 & x <= (min(x, na.rm = TRUE) + cut), "Low",
+          x <= 0.33, "Low",
           ifelse(
-            x > (min(x, na.rm = TRUE) + cut) & x <= (min(x, na.rm = TRUE) + 2 * cut), "Moderate",
+            x > 0.33 & x <= 0.66, "Moderate",
             "High"
-          )
         )
       )
     )
@@ -273,29 +305,22 @@ cut_with_zero_category <- function(x) {
 }
 
 cut_with_zero_category_bn <- function(x) {
-  if (length(x) == 0) {
-    return(factor(rep("", length(x)),
-                  levels = c("কম", "মাঝারি", "বেশি", "এর তথ্য নেই")))
-  }
-  # Calculate cut width excluding zeros
-  cut <- (max(x, na.rm = TRUE) - min(x, na.rm = TRUE)) / 3
-  
-  # Classify
-  result <- ifelse(
+result<-ifelse(
     is.na(x), "এর তথ্য নেই",
-      ifelse(x == 1, "বেশি",  # PRIORITIZE value 1 as "High"
         ifelse(
-          x >= 0 & x <= (min(x, na.rm = TRUE) + cut), "কম",
+          x <= 0.33, "কম",
           ifelse(
-            x > (min(x, na.rm = TRUE) + cut) & x <= (min(x, na.rm = TRUE) + 2 * cut), "মাঝারি",
+            x > 0.33 & x <= 0.66, "মাঝারি",
             "বেশি"
-          )
         )
       )
     )
   
   return(factor(result, levels = c("কম", "মাঝারি", "বেশি", "এর তথ্য নেই")))
 }
+
+
+# Step 6: Categorize each indicator
 
 # Step 6: Categorize each indicator
 
@@ -309,7 +334,7 @@ mutate(composite_risk_category=cut_with_zero_category(composite_risk),
        category_CI=cut_with_zero_category(risk_ci),
        category_HI=cut_with_zero_category(risk_hi),
        category_pop_den=cut_with_zero_category(risk_pop_den),
-       category_breed_site = cut_with_zero_category(breeding_risk) )%>%
+       category_breed_site = cut_with_zero_category(exposure_index) )%>%
 mutate(composite_risk_category_bn=cut_with_zero_category_bn(composite_risk),
        category_patients_bn=cut_with_zero_category_bn(risk_patients),
        category_deaths_bn=cut_with_zero_category_bn(risk_deaths),
@@ -318,7 +343,7 @@ mutate(composite_risk_category_bn=cut_with_zero_category_bn(composite_risk),
        category_CI_bn=cut_with_zero_category_bn(risk_ci),
        category_HI_bn=cut_with_zero_category_bn(risk_hi),
        category_pop_den_bn=cut_with_zero_category_bn(risk_pop_den),
-       category_breed_site_bn = cut_with_zero_category_bn(breeding_risk) )%>%
+       category_breed_site_bn = cut_with_zero_category_bn(exposure_index) )%>%
 mutate(summary=paste0("dengue patient number is ",tolower(category_patients),", ","dengue death number is ",tolower(category_deaths),", ","dengue mosquito number is ",tolower(category_mosquito),", ","dengue mosquito breeding site number is ",tolower(category_breed_site)," and ","population density is ",tolower(category_pop_den)))%>%
 mutate(summary_bn=paste0("ডেঙ্গু রোগীর সংখ্যা ",category_patients_bn,", ","ডেঙ্গুর কারণে মৃত্যুর সংখ্যা ",category_deaths_bn,", ","ডেঙ্গু মশার সংখ্যা ",category_mosquito_bn,", ","ডেঙ্গু মশার প্রজননস্থলের সংখ্যা ",category_breed_site_bn," এবং ","জনসংখ্যার ঘনত্ব ",category_pop_den_bn))%>%
 mutate(Avg_mosq_per_trap=Total_mosquito/2,
@@ -346,7 +371,7 @@ mutate(Date=Date.x,
               Total_Wet_container=ifelse(is.na(Total_Wet_container)==TRUE,0,Total_Wet_container),
               Total_House=ifelse(is.na(Total_House)==TRUE,0,Total_House),
               Total_mosquito=ifelse(is.na(Total_mosquito)==TRUE,0,Total_mosquito))%>%    
-dplyr::select(Date,year,month,week,week_ju,date_range,zone,ward,wardfc,area_bn,population,population_density,Total_patient,Total_death,Total_mosquito,Avg_mosq_per_trap,BI,CI,HI,roll_total_patients,roll_total_deaths,roll_avg_mosq_per_trap,roll_bi,roll_ci,roll_hi,risk_patients,risk_deaths,risk_adult_mosquito,risk_bi,risk_ci,risk_hi,risk_pop_den,composite_risk,category_patients_bn,category_deaths_bn,category_mosquito_bn,category_BI_bn,category_CI_bn,category_HI_bn,category_pop_den_bn,area_sqkm,composite_risk_category_bn,summary_bn)%>%
+dplyr::select(Date,year,month,week,week_ju,date_range,zone,ward,wardfc,area_bn,population,population_density,Total_patient,Total_death,Total_mosquito,Avg_mosq_per_trap,BI,CI,HI,roll_total_patients,roll_total_deaths,roll_avg_mosq_per_trap,roll_bi,roll_ci,roll_hi,risk_patients,risk_deaths,risk_adult_mosquito,risk_bi,risk_ci,risk_hi,risk_pop_den,composite_risk,category_patients_bn,category_deaths_bn,category_mosquito_bn,category_BI_bn,category_CI_bn,category_HI_bn,category_pop_den_bn,area_sqkm,composite_risk_category_bn,summary_bn)%>%    
 filter(Date>=start_date)
 
 OUTPUT_SHEET_ID  <- "1zEaxK5CyBCa_TxmFYjjcnsAQ3bxxrecfMGiKJ7gqXAU"
