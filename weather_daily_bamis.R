@@ -178,6 +178,22 @@ message("Latest BAMIS observation:")
 
 print(latest_weather)
 
+# ============================================================
+# GOOGLE SHEETS AUTHENTICATION
+# ============================================================
+
+# Service account JSON is stored as GitHub Secret
+service_account_json <- Sys.getenv("GSHEET_JSON")
+
+# Write temporary credential file
+writeLines(
+  service_account_json,
+  "google-service-account.json"
+)
+
+gs4_auth(
+  path = "google-service-account.json"
+)
 
 # ============================================================
 # READ EXISTING GOOGLE SHEET
