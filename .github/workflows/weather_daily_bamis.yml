@@ -1,45 +1,48 @@
 name: Update BAMIS Weather to Google Sheets
 
+permissions:
+  contents: write
+
 on:
-
-  # Daily at 8:00 AM Bangladesh time
   schedule:
-    - cron: "0 2 * * *"
-
-  # Allows you to run manually
+    - cron: "0 8 * * *"   # 08:00 AM Bangladesh time
   workflow_dispatch:
 
 jobs:
-
-  update-weather:
-
+  scrape:
     runs-on: ubuntu-latest
 
-    steps:
+    env:
+      GSHEET_JSON: ${{ secrets.GSHEET_JSON }}
 
-      # Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
       # Setup R
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
 
-      # Install required packages
-      - name: Install R packages
+      # Install system dependencies (needed for some R packages)
+      - name: Install system dependencies
         run: |
-          Rscript -e 'install.packages(c(
-            "rvest",
-            "dplyr",
-            "stringr",
-            "lubridate",
-            "googlesheets4",
-            "jsonlite"
-          ), repos="https://cloud.r-project.org")'
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
 
-      # Run weather scraper
-      - name: Download and append weather data
-        env:
-          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+      # Install + cache R packages (FAST 🚀)
+      - name: Setup dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            rvest
+            dplyr
+            stringr
+            lubridate
+            googlesheets4
+            jsonlite
+          extra-repositories: https://packagemanager.posit.co/cran/latest
+
+      # Run your script
+      - name: Run scraping script
         run: |
-          Rscript R/weather_daily_bamis.R
+          Rscript weather_daily_bamis.R
