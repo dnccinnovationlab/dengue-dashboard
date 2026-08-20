@@ -3,9 +3,9 @@
 # ============================================================
 #
 # Source:
-# https://www.bamis.gov.bd/en/bmd/wrf/table/all/1
+# https://www.bamis.gov.bd/bmd/wrf/table/all/1
 # ...
-# https://www.bamis.gov.bd/en/bmd/wrf/table/all/7
+# https://www.bamis.gov.bd/bmd/wrf/table/all/7
 #
 # Purpose:
 #   - Download BAMIS WRF forecasts for horizons 1-7
@@ -87,7 +87,7 @@ sheet_name <-
 # ------------------------------------------------------------
 
 base_url <-
-  "https://www.bamis.gov.bd/en/bmd/wrf/table/all/"
+  "https://www.bamis.gov.bd/bmd/wrf/table/all/"
 
 
 # ------------------------------------------------------------
