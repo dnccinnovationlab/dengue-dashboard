@@ -18,7 +18,7 @@ jobs:
           echo "Testing BAMIS..."
 
           curl -I -L \
-            --max-time 60 \
+            --max-time 120 \
             -A "Mozilla/5.0" \
             "https://www.bamis.gov.bd/bmd/wrf/table/all/1"
 
@@ -27,7 +27,7 @@ jobs:
           echo "Testing page..."
 
           curl -L \
-            --max-time 60 \
+            --max-time 120 \
             -A "Mozilla/5.0" \
             "https://www.bamis.gov.bd/bmd/wrf/table/all/1" \
             -o bamis.html
