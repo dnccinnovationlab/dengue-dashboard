@@ -43,6 +43,7 @@ jobs:
             stringr
             lubridate
             googlesheets4
+            httr2
           extra-repositories: https://packagemanager.posit.co/cran/latest
 
       # ------------------------------------------------------
