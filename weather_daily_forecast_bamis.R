@@ -4,39 +4,41 @@
 #
 # Source:
 # https://www.bamis.gov.bd/bmd/wrf/table/all/1
-# https://www.bamis.gov.bd/bmd/wrf/table/all/2
 # ...
 # https://www.bamis.gov.bd/bmd/wrf/table/all/7
 #
-# Target:
-# Dhaka
-#
-# Output:
-# Google Sheets
+# Purpose:
+#   - Download BAMIS WRF forecasts for horizons 1-7
+#   - Extract Dhaka only
+#   - Calculate individual daily forecast values
+#   - Rainfall = daily total
+#   - Temperature/Humidity/Wind speed = daily values
+#   - Append forecast history to Google Sheets
 #
 # ============================================================
 
 
 # ============================================================
-# 1. INSTALL / LOAD PACKAGES
+# 1. PACKAGES
 # ============================================================
 
 required_packages <- c(
   "rvest",
-  "httr2",
   "dplyr",
   "stringr",
   "lubridate",
   "googlesheets4"
 )
 
-installed_packages <- rownames(
+
+# Install missing packages when running locally/GitHub
+installed <- rownames(
   installed.packages()
 )
 
 for (pkg in required_packages) {
 
-  if (!(pkg %in% installed_packages)) {
+  if (!(pkg %in% installed)) {
 
     install.packages(
       pkg,
@@ -48,8 +50,9 @@ for (pkg in required_packages) {
 }
 
 
+# Load packages
+
 library(rvest)
-library(httr2)
 library(dplyr)
 library(stringr)
 library(lubridate)
@@ -61,7 +64,7 @@ library(googlesheets4)
 # ============================================================
 
 # ------------------------------------------------------------
-# Google Spreadsheet ID
+# Google Spreadsheet
 # ------------------------------------------------------------
 
 sheet_id <-
@@ -69,20 +72,18 @@ sheet_id <-
 
 
 # ------------------------------------------------------------
-# Google Sheet tab
+# Google Sheet TAB name
 #
-# CHANGE THIS IF YOUR TAB HAS A DIFFERENT NAME
+# IMPORTANT:
+# Change this if your tab has another name.
 # ------------------------------------------------------------
 
 sheet_name <-
-  "BAMIS_WRF_Forecast"
+  "weather_bamis_forecast"
 
 
 # ------------------------------------------------------------
-# BAMIS WRF BASE URL
-#
-# IMPORTANT:
-# This is the original URL structure you provided.
+# BAMIS WRF URL
 # ------------------------------------------------------------
 
 base_url <-
@@ -98,14 +99,17 @@ target_district <-
 
 
 # ============================================================
-# 3. FUNCTION: CONVERT BANGLA DIGITS AND CLEAN NUMBERS
+# 3. FUNCTION: CLEAN NUMBERS
 # ============================================================
 
 clean_number <- function(x) {
 
   x <- as.character(x)
 
-  # Bangla digits -> English digits
+
+  # ----------------------------------------------------------
+  # Convert Bangla digits to English digits
+  # ----------------------------------------------------------
 
   x <- str_replace_all(x, "০", "0")
   x <- str_replace_all(x, "১", "1")
@@ -118,7 +122,10 @@ clean_number <- function(x) {
   x <- str_replace_all(x, "৮", "8")
   x <- str_replace_all(x, "৯", "9")
 
-  # Remove commas
+
+  # ----------------------------------------------------------
+  # Commas
+  # ----------------------------------------------------------
 
   x <- str_replace_all(
     x,
@@ -126,7 +133,10 @@ clean_number <- function(x) {
     ""
   )
 
+
+  # ----------------------------------------------------------
   # Unicode minus
+  # ----------------------------------------------------------
 
   x <- str_replace_all(
     x,
@@ -134,13 +144,21 @@ clean_number <- function(x) {
     "-"
   )
 
-  # Remove other characters
+
+  # ----------------------------------------------------------
+  # Remove non-numeric characters
+  # ----------------------------------------------------------
 
   x <- str_replace_all(
     x,
     "[^0-9.\\-]",
     ""
   )
+
+
+  # ----------------------------------------------------------
+  # Convert to numeric
+  # ----------------------------------------------------------
 
   suppressWarnings(
     as.numeric(x)
@@ -155,35 +173,56 @@ clean_number <- function(x) {
 
 repair_column_names <- function(df) {
 
-  nm <- names(df)
+  old_names <- names(df)
 
-  # Blank names
 
-  nm[
-    is.na(nm) |
-      nm == ""
-  ] <- "unknown"
+  # ----------------------------------------------------------
+  # Replace NA / blank names
+  # ----------------------------------------------------------
 
+  old_names[
+    is.na(old_names) |
+      old_names == ""
+  ] <-
+    "unknown"
+
+
+  # ----------------------------------------------------------
   # Remove line breaks
+  # ----------------------------------------------------------
 
-  nm <- str_replace_all(
-    nm,
-    "[\r\n]+",
-    " "
-  )
+  new_names <-
+    str_replace_all(
+      old_names,
+      "[\r\n]+",
+      " "
+    )
 
+
+  # ----------------------------------------------------------
   # Remove excessive spaces
+  # ----------------------------------------------------------
 
-  nm <- str_squish(nm)
+  new_names <-
+    str_squish(
+      new_names
+    )
 
-  # Make duplicate names unique
 
-  nm <- make.unique(
-    nm,
-    sep = "__"
-  )
+  # ----------------------------------------------------------
+  # Make names unique
+  # ----------------------------------------------------------
 
-  names(df) <- nm
+  new_names <-
+    make.unique(
+      new_names,
+      sep = "__"
+    )
+
+
+  names(df) <-
+    new_names
+
 
   df
 
@@ -191,7 +230,7 @@ repair_column_names <- function(df) {
 
 
 # ============================================================
-# 5. FUNCTION: FIND ONE COLUMN
+# 5. FUNCTION: FIND COLUMN
 # ============================================================
 
 find_column <- function(
@@ -201,12 +240,14 @@ find_column <- function(
 
   nm <- names(df)
 
+
   matches <- nm[
     str_detect(
       str_to_lower(nm),
       pattern
     )
   ]
+
 
   if (
     length(matches) == 0
@@ -215,7 +256,7 @@ find_column <- function(
     if (required) {
 
       stop(
-        "\nCOLUMN NOT FOUND\n",
+        "\n\nCOLUMN NOT FOUND\n",
         "Pattern: ",
         pattern,
         "\n\nAvailable columns:\n",
@@ -233,13 +274,14 @@ find_column <- function(
 
   }
 
+
   matches[1]
 
 }
 
 
 # ============================================================
-# 6. FUNCTION: FIND ALL MATCHING COLUMNS
+# 6. FUNCTION: FIND ALL COLUMNS
 # ============================================================
 
 find_columns <- function(
@@ -247,6 +289,7 @@ find_columns <- function(
     pattern) {
 
   nm <- names(df)
+
 
   nm[
     str_detect(
@@ -260,12 +303,13 @@ find_columns <- function(
 
 # ============================================================
 # 7. FUNCTION:
-# SELECT THE RAINFALL COLUMN WITH ACTUAL NUMERIC DATA
+#    CHOOSE BEST NUMERIC COLUMN
 # ============================================================
 
 choose_numeric_column <- function(
     df,
     candidates) {
+
 
   if (
     length(candidates) == 0
@@ -276,6 +320,11 @@ choose_numeric_column <- function(
     )
 
   }
+
+
+  # ----------------------------------------------------------
+  # Calculate number of numeric values in each candidate
+  # ----------------------------------------------------------
 
   scores <- sapply(
 
@@ -296,9 +345,13 @@ choose_numeric_column <- function(
 
   )
 
-  message("")
+
+  # ----------------------------------------------------------
+  # Print scores
+  # ----------------------------------------------------------
+
   message(
-    "Numeric values in rainfall candidates:"
+    "Numeric values detected in candidate columns:"
   )
 
   print(
@@ -307,6 +360,11 @@ choose_numeric_column <- function(
       numeric_values = scores
     )
   )
+
+
+  # ----------------------------------------------------------
+  # Select column with most numeric values
+  # ----------------------------------------------------------
 
   candidates[
     which.max(scores)
@@ -317,15 +375,22 @@ choose_numeric_column <- function(
 
 # ============================================================
 # 8. FUNCTION:
-# DOWNLOAD ONE BAMIS WRF TABLE
+#    DOWNLOAD ONE BAMIS WRF HORIZON
 # ============================================================
 
 read_wrf_horizon <- function(day) {
 
-  url <- paste0(
-    base_url,
-    day
-  )
+
+  # ----------------------------------------------------------
+  # URL
+  # ----------------------------------------------------------
+
+  url <-
+    paste0(
+      base_url,
+      day
+    )
+
 
   message("")
   message(
@@ -348,36 +413,17 @@ read_wrf_horizon <- function(day) {
 
 
   # ----------------------------------------------------------
-  # DOWNLOAD USING HTTR2
+  # Download page
   # ----------------------------------------------------------
 
-  response <- tryCatch(
+  page <- tryCatch(
 
-    request(url) |>
-
-      req_user_agent(
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151.0 Safari/537.36"
-      ) |>
-
-      req_header(
-        "Accept" =
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-      ) |>
-
-      req_timeout(
-        60
-      ) |>
-
-      req_perform(),
+    read_html(url),
 
     error = function(e) {
 
       stop(
-        "\nUnable to download BAMIS page.\n\n",
-        "URL: ",
-        url,
-        "\n\n",
-        "Error:\n",
+        "Unable to download BAMIS page.\n",
         e$message
       )
 
@@ -387,69 +433,30 @@ read_wrf_horizon <- function(day) {
 
 
   # ----------------------------------------------------------
-  # HTTP STATUS
+  # Extract HTML tables
+  #
+  # IMPORTANT:
+  # Do NOT use name_repair here.
+  # Your version of rvest does not support it.
   # ----------------------------------------------------------
 
-  status <-
-    resp_status(
-      response
-    )
-
-  message(
-    "HTTP status: ",
-    status
-  )
-
-
-  if (
-    status != 200
-  ) {
-
-    stop(
-      "\nBAMIS returned HTTP status ",
-      status,
-      "\nURL: ",
-      url
-    )
-
-  }
-
-
-  # ----------------------------------------------------------
-  # READ HTML
-  # ----------------------------------------------------------
-
-  html_text <-
-    resp_body_string(
-      response
-    )
-
-
-  page <-
-    read_html(
-      html_text
-    )
-
-
-  # ----------------------------------------------------------
-  # FIND TABLES
-  # ----------------------------------------------------------
-
-  tables <-
-    page |>
+  tables <- page |>
     html_elements("table") |>
     html_table(
       fill = TRUE
     )
 
 
+  # ----------------------------------------------------------
+  # Check tables
+  # ----------------------------------------------------------
+
   if (
     length(tables) == 0
   ) {
 
     stop(
-      "\nNo HTML table found.\n",
-      "URL: ",
+      "No table found on BAMIS page:\n",
       url
     )
 
@@ -463,7 +470,7 @@ read_wrf_horizon <- function(day) {
 
 
   # ----------------------------------------------------------
-  # USE FIRST TABLE
+  # First table
   # ----------------------------------------------------------
 
   df <-
@@ -471,7 +478,7 @@ read_wrf_horizon <- function(day) {
 
 
   # ----------------------------------------------------------
-  # REPAIR DUPLICATE COLUMN NAMES
+  # Repair duplicate column names
   # ----------------------------------------------------------
 
   df <-
@@ -482,17 +489,14 @@ read_wrf_horizon <- function(day) {
 
   message(
     "Rows: ",
-    nrow(df)
-  )
-
-  message(
-    "Columns: ",
+    nrow(df),
+    " | Columns: ",
     ncol(df)
   )
 
 
   message(
-    "Column names:"
+    "Column names after repair:"
   )
 
   print(
@@ -507,6 +511,7 @@ read_wrf_horizon <- function(day) {
   district_col <-
     find_column(
       df,
+
       "district|জেলা"
     )
 
@@ -514,6 +519,21 @@ read_wrf_horizon <- function(day) {
   message(
     "District column: ",
     district_col
+  )
+
+
+  # ==========================================================
+  # SHOW DISTRICTS
+  # ==========================================================
+
+  message(
+    "District values:"
+  )
+
+  print(
+    unique(
+      df[[district_col]]
+    )
   )
 
 
@@ -546,12 +566,16 @@ read_wrf_horizon <- function(day) {
     ]
 
 
+  # ==========================================================
+  # CHECK DHAKA
+  # ==========================================================
+
   if (
     nrow(df) == 0
   ) {
 
     stop(
-      "\nDhaka was not found in WRF horizon ",
+      "Dhaka was not found in BAMIS WRF horizon ",
       day
     )
 
@@ -559,7 +583,7 @@ read_wrf_horizon <- function(day) {
 
 
   # ----------------------------------------------------------
-  # If multiple Dhaka rows
+  # If more than one Dhaka row, use first
   # ----------------------------------------------------------
 
   if (
@@ -567,7 +591,7 @@ read_wrf_horizon <- function(day) {
   ) {
 
     message(
-      "Multiple Dhaka rows found."
+      "More than one Dhaka row found."
     )
 
     message(
@@ -590,7 +614,7 @@ read_wrf_horizon <- function(day) {
 
 
 # ============================================================
-# 9. DOWNLOAD HORIZONS 1-7
+# 9. DOWNLOAD HORIZONS 1 TO 7
 # ============================================================
 
 message("")
@@ -615,7 +639,7 @@ wrf_tables <-
 
 
 # ============================================================
-# 10. USE HORIZON 7 TO IDENTIFY VARIABLES
+# 10. USE DAY-7 TABLE TO IDENTIFY COLUMNS
 # ============================================================
 
 df7 <-
@@ -637,12 +661,24 @@ message(
 
 
 # ============================================================
+# DISTRICT
+# ============================================================
+
+district_col <-
+  find_column(
+    df7,
+    "district|জেলা"
+  )
+
+
+# ============================================================
 # TEMPERATURE
 # ============================================================
 
 temp_min_col <-
   find_column(
     df7,
+
     "temperature.*min|temp.*min|সর্বনিম্ন.*তাপ"
   )
 
@@ -650,6 +686,7 @@ temp_min_col <-
 temp_avg_col <-
   find_column(
     df7,
+
     "temperature.*avg|temperature.*average|temp.*avg|temp.*average|গড়.*তাপ"
   )
 
@@ -657,6 +694,7 @@ temp_avg_col <-
 temp_max_col <-
   find_column(
     df7,
+
     "temperature.*max|temp.*max|সর্বোচ্চ.*তাপ"
   )
 
@@ -668,6 +706,7 @@ temp_max_col <-
 humidity_min_col <-
   find_column(
     df7,
+
     "humidity.*min|আর্দ্রতা.*min|আর্দ্রতা.*সর্বনিম্ন"
   )
 
@@ -675,6 +714,7 @@ humidity_min_col <-
 humidity_avg_col <-
   find_column(
     df7,
+
     "humidity.*avg|humidity.*average|আর্দ্রতা.*গড়"
   )
 
@@ -682,6 +722,7 @@ humidity_avg_col <-
 humidity_max_col <-
   find_column(
     df7,
+
     "humidity.*max|আর্দ্রতা.*max|আর্দ্রতা.*সর্বোচ্চ"
   )
 
@@ -693,6 +734,7 @@ humidity_max_col <-
 rainfall_candidates <-
   find_columns(
     df7,
+
     "rainfall|rain fall|বৃষ্টিপাত"
   )
 
@@ -712,14 +754,14 @@ if (
 ) {
 
   stop(
-    "No rainfall column found."
+    "No rainfall column was found."
   )
 
 }
 
 
 # ------------------------------------------------------------
-# Display rainfall candidate values
+# Print rainfall columns
 # ------------------------------------------------------------
 
 message("")
@@ -773,6 +815,7 @@ message(
 wind_min_col <-
   find_column(
     df7,
+
     "wind.*speed.*min|wind.*min|বাতাসের.*গতি.*সর্বনিম্ন"
   )
 
@@ -780,6 +823,7 @@ wind_min_col <-
 wind_avg_col <-
   find_column(
     df7,
+
     "wind.*speed.*avg|wind.*speed.*average|wind.*avg|wind.*average|বাতাসের.*গতি.*গড়"
   )
 
@@ -787,6 +831,7 @@ wind_avg_col <-
 wind_max_col <-
   find_column(
     df7,
+
     "wind.*speed.*max|wind.*max|বাতাসের.*গতি.*সর্বোচ্চ"
   )
 
@@ -798,12 +843,13 @@ wind_max_col <-
 wind_direction_col <-
   find_column(
     df7,
+
     "wind.*direction|বাতাসের.*দিক"
   )
 
 
 # ============================================================
-# PRINT SELECTED COLUMNS
+# DISPLAY SELECTED COLUMNS
 # ============================================================
 
 message("")
@@ -812,7 +858,7 @@ message(
 )
 
 message(
-  "# SELECTED VARIABLES"
+  "# SELECTED COLUMNS"
 )
 
 message(
@@ -822,6 +868,9 @@ message(
 
 print(
   c(
+
+    district =
+      district_col,
 
     temp_min =
       temp_min_col,
@@ -861,7 +910,7 @@ print(
 
 
 # ============================================================
-# 11. EXTRACT RAW HORIZON VALUES
+# 11. EXTRACT ALL HORIZONS
 # ============================================================
 
 wrf_cumulative <-
@@ -873,71 +922,82 @@ wrf_cumulative <-
 
       function(day) {
 
+
         df <-
           wrf_tables[[day]]
+
 
         tibble(
 
           horizon =
             day,
 
+
           district =
             as.character(
-              df[[find_column(
-                df,
-                "district|জেলা"
-              )]]
+              df[[district_col]]
             ),
+
 
           temp_min =
             clean_number(
               df[[temp_min_col]]
             ),
 
+
           temp_avg =
             clean_number(
               df[[temp_avg_col]]
             ),
+
 
           temp_max =
             clean_number(
               df[[temp_max_col]]
             ),
 
+
           humidity_min =
             clean_number(
               df[[humidity_min_col]]
             ),
+
 
           humidity_avg =
             clean_number(
               df[[humidity_avg_col]]
             ),
 
+
           humidity_max =
             clean_number(
               df[[humidity_max_col]]
             ),
+
 
           rainfall =
             clean_number(
               df[[rainfall_col]]
             ),
 
+
           wind_min =
             clean_number(
               df[[wind_min_col]]
             ),
+
 
           wind_avg =
             clean_number(
               df[[wind_avg_col]]
             ),
 
+
           wind_max =
             clean_number(
               df[[wind_max_col]]
             ),
+
 
           wind_direction_avg =
             clean_number(
@@ -954,7 +1014,7 @@ wrf_cumulative <-
 
 
 # ============================================================
-# 12. SHOW RAW VALUES
+# 12. PRINT RAW HORIZON DATA
 # ============================================================
 
 message("")
@@ -963,7 +1023,7 @@ message(
 )
 
 message(
-  "# RAW BAMIS HORIZON DATA"
+  "# RAW BAMIS HORIZON VALUES"
 )
 
 message(
@@ -977,14 +1037,16 @@ print(
 
 # ============================================================
 # 13. FUNCTION:
-# CUMULATIVE AVERAGE -> INDIVIDUAL DAILY VALUE
+# CUMULATIVE AVERAGE -> DAILY VALUE
 # ============================================================
 
 cumulative_average_to_daily <-
   function(x) {
 
+
     n <-
       length(x)
+
 
     daily <-
       rep(
@@ -996,6 +1058,7 @@ cumulative_average_to_daily <-
     for (
       i in seq_len(n)
     ) {
+
 
       # ------------------------------------------------------
       # Day 1
@@ -1017,7 +1080,8 @@ cumulative_average_to_daily <-
 
       else {
 
-        previous_daily <-
+
+        previous_values <-
           daily[
             1:(i - 1)
           ]
@@ -1027,7 +1091,7 @@ cumulative_average_to_daily <-
           is.na(x[i]) ||
           any(
             is.na(
-              previous_daily
+              previous_values
             )
           )
         ) {
@@ -1037,9 +1101,10 @@ cumulative_average_to_daily <-
 
         } else {
 
+
           previous_total <-
             sum(
-              previous_daily
+              previous_values
             )
 
 
@@ -1055,13 +1120,14 @@ cumulative_average_to_daily <-
 
     }
 
+
     daily
 
   }
 
 
 # ============================================================
-# 14. CONVERT CUMULATIVE AVERAGES
+# 14. CONVERT AVERAGE VARIABLES
 # ============================================================
 
 average_variables <- c(
@@ -1094,7 +1160,8 @@ for (
 
 
 # ============================================================
-# 15. CONVERT CUMULATIVE RAINFALL
+# 15. RAINFALL:
+# CUMULATIVE TOTAL -> DAILY TOTAL
 # ============================================================
 
 rainfall_cumulative <-
@@ -1114,7 +1181,7 @@ wrf_cumulative$rainfall <-
 
 
 # ============================================================
-# 16. CREATE FORECAST DATES
+# 16. DATES
 # ============================================================
 
 today <-
@@ -1123,7 +1190,6 @@ today <-
 
 wrf_daily <-
   wrf_cumulative |>
-
   mutate(
 
     forecast_run_date =
@@ -1140,7 +1206,7 @@ wrf_daily <-
 
 
 # ============================================================
-# 17. REMOVE TINY NEGATIVE VALUES
+# 17. REMOVE SMALL NEGATIVE ROUNDING ERRORS
 # ============================================================
 
 numeric_variables <- c(
@@ -1191,7 +1257,7 @@ wrf_daily <-
 
 
 # ============================================================
-# 18. ROUND NUMERIC VALUES
+# 18. ROUND VALUES
 # ============================================================
 
 wrf_daily <-
@@ -1222,7 +1288,7 @@ wrf_daily <-
 
 
 # ============================================================
-# 19. FINAL OUTPUT
+# 19. FINAL DATASET
 # ============================================================
 
 daily_forecast <-
@@ -1262,7 +1328,7 @@ daily_forecast <-
 
 
 # ============================================================
-# 20. DISPLAY FINAL FORECAST
+# 20. PRINT FINAL FORECAST
 # ============================================================
 
 message("")
@@ -1271,7 +1337,7 @@ message(
 )
 
 message(
-  "# FINAL DHAKA 7-DAY FORECAST"
+  "# FINAL DHAKA DAILY FORECAST"
 )
 
 message(
@@ -1284,27 +1350,28 @@ print(
 
 
 # ============================================================
-# 21. VALIDATE
+# 21. CHECK 7 DAYS
 # ============================================================
 
 if (
-  nrow(
-    daily_forecast
-  ) != 7
+  nrow(daily_forecast) != 7
 ) {
 
   stop(
-    "Expected 7 rows but found ",
+
+    "Expected 7 forecast rows but received ",
+
     nrow(
       daily_forecast
     )
+
   )
 
 }
 
 
 # ============================================================
-# 22. GOOGLE SHEETS AUTHENTICATION
+# 22. GOOGLE AUTHENTICATION
 # ============================================================
 
 message("")
@@ -1324,14 +1391,14 @@ if (
 ) {
 
   stop(
-    "GOOGLE_SERVICE_ACCOUNT GitHub Secret is missing."
+    "GOOGLE_SERVICE_ACCOUNT secret is missing."
   )
 
 }
 
 
 # ------------------------------------------------------------
-# Temporary JSON file
+# Create temporary credentials file
 # ------------------------------------------------------------
 
 credential_file <-
@@ -1357,11 +1424,11 @@ gs4_auth(
 
 
 # ============================================================
-# 23. READ GOOGLE SHEET
+# 23. READ EXISTING GOOGLE SHEET
 # ============================================================
 
 message(
-  "Reading Google Sheet..."
+  "Reading existing Google Sheet..."
 )
 
 
@@ -1378,19 +1445,21 @@ existing <-
 
     ),
 
-    error = function(e) {
+    error =
+      function(e) {
 
-      message(
-        "Google Sheet could not be read."
-      )
+        message(
+          "Could not read sheet."
+        )
 
-      message(
-        e$message
-      )
+        message(
+          "Error: ",
+          e$message
+        )
 
-      NULL
+        NULL
 
-    }
+      }
 
   )
 
@@ -1411,12 +1480,14 @@ if (
 
 ) {
 
-  message(
-    "Google Sheet is empty."
-  )
 
   message(
-    "Writing initial 7-day forecast..."
+    "Sheet is empty."
+  )
+
+
+  message(
+    "Writing 7-day forecast..."
   )
 
 
@@ -1470,7 +1541,7 @@ if (
 
 
   # ==========================================================
-  # IDENTIFY NEW ROWS
+  # FIND NEW ROWS
   # ==========================================================
 
   new_rows <-
@@ -1493,7 +1564,9 @@ if (
       by = c(
 
         "forecast_run_date",
+
         "forecast_date",
+
         "day_ahead"
 
       )
@@ -1510,6 +1583,7 @@ if (
       new_rows
     ) > 0
   ) {
+
 
     message("")
     message(
@@ -1536,19 +1610,21 @@ if (
 
 
     message(
-      "Successfully appended new forecast."
+      "Successfully appended."
     )
 
 
   } else {
+
 
     message("")
     message(
       "Today's forecast already exists."
     )
 
+
     message(
-      "No new rows appended."
+      "Nothing to append."
     )
 
   }
@@ -1557,7 +1633,7 @@ if (
 
 
 # ============================================================
-# 25. REMOVE TEMPORARY CREDENTIAL
+# 25. DELETE TEMPORARY CREDENTIAL
 # ============================================================
 
 unlink(
@@ -1566,7 +1642,7 @@ unlink(
 
 
 # ============================================================
-# 26. FINISHED
+# 26. FINISH
 # ============================================================
 
 message("")
@@ -1575,7 +1651,7 @@ message(
 )
 
 message(
-  "# BAMIS WRF UPDATE COMPLETED SUCCESSFULLY"
+  "# BAMIS WRF UPDATE COMPLETED"
 )
 
 message(
