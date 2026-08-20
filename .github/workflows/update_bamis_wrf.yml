@@ -1,23 +1,19 @@
 name: Update BAMIS WRF Forecast
 
+permissions:
+  contents: write
+
 on:
-
-  # Every day at 08:00 Bangladesh time
-  # Bangladesh = UTC + 6
-  # 08:00 BDT = 02:00 UTC
-
   schedule:
-    - cron: "0 2 * * *"
-
-  # Manual run
+    - cron: "0 2 * * *"   # 08:00 AM Bangladesh time
   workflow_dispatch:
 
-
 jobs:
-
-  update-bamis-wrf:
-
+  scrape:
     runs-on: ubuntu-latest
+
+    env:
+      GSHEET_JSON: ${{ secrets.GSHEET_JSON }}
 
     steps:
       - name: Checkout repo
@@ -43,19 +39,9 @@ jobs:
             stringr
             lubridate
             googlesheets4
-            httr2
           extra-repositories: https://packagemanager.posit.co/cran/latest
 
-      # ------------------------------------------------------
-      # RUN SCRAPER
-      # ------------------------------------------------------
-
-      - name: Run BAMIS WRF scraper
-
-        env:
-
-          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GSHEET_JSON }}
-
+      # Run your script
+      - name: Run scraping script
         run: |
-
           Rscript weather_daily_forecast_bamis.R
