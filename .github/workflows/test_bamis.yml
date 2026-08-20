@@ -1,0 +1,39 @@
+name: Test BAMIS Connection
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Test BAMIS
+
+        run: |
+
+          echo "Testing BAMIS..."
+
+          curl -I -L \
+            --max-time 60 \
+            -A "Mozilla/5.0" \
+            "https://www.bamis.gov.bd/bmd/wrf/table/all/1"
+
+          echo ""
+
+          echo "Testing page..."
+
+          curl -L \
+            --max-time 60 \
+            -A "Mozilla/5.0" \
+            "https://www.bamis.gov.bd/bmd/wrf/table/all/1" \
+            -o bamis.html
+
+          echo ""
+
+          echo "Downloaded file size:"
+
+          wc -c bamis.html
