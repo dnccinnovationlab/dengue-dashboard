@@ -1,0 +1,75 @@
+name: Update OpenWeather Observed Hourly Data
+
+on:
+
+  schedule:
+
+    # Run every hour at minute 10
+    - cron: "10 * * * *"
+
+  workflow_dispatch:
+
+
+jobs:
+
+  update-weather:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ------------------------------------------------------
+      # CHECKOUT
+      # ------------------------------------------------------
+
+      - name: Checkout repository
+
+        uses: actions/checkout@v4
+
+
+      # ------------------------------------------------------
+      # SETUP R
+      # ------------------------------------------------------
+
+      - name: Setup R
+
+        uses: r-lib/actions/setup-r@v2
+
+
+      # ------------------------------------------------------
+      # INSTALL PACKAGES
+      # ------------------------------------------------------
+
+      - name: Install R packages
+
+        run: |
+
+          Rscript -e '
+          install.packages(
+            c(
+              "httr2",
+              "jsonlite",
+              "dplyr",
+              "lubridate",
+              "googlesheets4"
+            ),
+            repos = "https://cloud.r-project.org"
+          )
+          '
+
+
+      # ------------------------------------------------------
+      # RUN R SCRIPT
+      # ------------------------------------------------------
+
+      - name: Download observed weather
+
+        env:
+
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+
+          GSHEET_JSON: ${{ secrets.GSHEET_JSON }}
+
+        run: |
+
+          Rscript openweather_observed.R
