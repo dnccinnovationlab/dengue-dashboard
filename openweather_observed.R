@@ -456,13 +456,13 @@ print(observed)
 
 google_credentials <-
   Sys.getenv(
-    "GOOGLE_SERVICE_ACCOUNT"
+    "GSHEET_JSON"
   )
 
 if (google_credentials == "") {
 
   stop(
-    "GOOGLE_SERVICE_ACCOUNT GitHub Secret is missing."
+    "GSHEET_JSON GitHub Secret is missing."
   )
 
 }
