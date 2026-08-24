@@ -47,6 +47,6 @@ jobs:
       # ------------------------------------------------------
       - name: Run BAMIS WRF scraper
         env:
-          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GSHEET_JSON }}
+          GSHEET_JSON: ${{ secrets.GSHEET_JSON }}
         run: |
           Rscript weather_daily_forecast_bamis.R
