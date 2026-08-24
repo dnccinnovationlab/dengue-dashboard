@@ -2,8 +2,24 @@
 # OPENWEATHER HOURLY OBSERVED WEATHER
 # DHAKA, BANGLADESH
 # ============================================================
+#
+# Purpose:
+#   Download the most recent completed hourly observation
+#   from OpenWeather Historical / Timemachine API
+#
+# Time zone:
+#   Asia/Dhaka (UTC+6)
+#
+# Output:
+#   Google Sheets
+#
+# ============================================================
 
-# Packages
+
+# ============================================================
+# 1. INSTALL / LOAD PACKAGES
+# ============================================================
+
 packages <- c(
   "httr2",
   "jsonlite",
@@ -12,13 +28,17 @@ packages <- c(
   "googlesheets4"
 )
 
-for (p in packages) {
-  if (!requireNamespace(p, quietly = TRUE)) {
+for (pkg in packages) {
+
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+
     install.packages(
-      p,
+      pkg,
       repos = "https://cloud.r-project.org"
     )
+
   }
+
 }
 
 library(httr2)
@@ -29,90 +49,154 @@ library(googlesheets4)
 
 
 # ============================================================
-# SETTINGS
+# 2. SETTINGS
 # ============================================================
+
+# ------------------------------------------------------------
+# Dhaka coordinates
+# ------------------------------------------------------------
 
 latitude <- 23.8103
 longitude <- 90.4125
 
+
+# ------------------------------------------------------------
+# Location
+# ------------------------------------------------------------
+
 location <- "Dhaka"
 
+
+# ------------------------------------------------------------
+# Bangladesh timezone
+# ------------------------------------------------------------
+
 timezone <- "Asia/Dhaka"
+
+
+# ------------------------------------------------------------
+# Google Spreadsheet
+# ------------------------------------------------------------
 
 sheet_id <-
   "1YKiQPMtUzd-AwU2cBYVozwfgKVRsHhrTBbc4KFFBQOM"
 
+
+# ------------------------------------------------------------
+# Google Sheet tab
+# ------------------------------------------------------------
+
 sheet_name <- "OpenWeather_Observed"
+
+
+# ------------------------------------------------------------
+# OpenWeather historical API
+# ------------------------------------------------------------
 
 api_url <-
   "https://api.openweathermap.org/data/3.0/onecall/timemachine"
 
 
 # ============================================================
-# API KEY
+# 3. GET OPENWEATHER API KEY
 # ============================================================
 
-api_key <- Sys.getenv("OPENWEATHER_API_KEY")
+api_key <-
+  Sys.getenv("OPENWEATHER_API_KEY")
+
 
 if (api_key == "") {
+
   stop(
-    "OPENWEATHER_API_KEY GitHub Secret is missing."
+    "ERROR: OPENWEATHER_API_KEY GitHub Secret is missing."
   )
+
 }
 
 
 # ============================================================
-# DETERMINE LAST COMPLETED HOUR
+# 4. CURRENT DHAKA TIME
 # ============================================================
 
-now_dhaka <- now(
-  tz = timezone
-)
-
-current_hour <- floor_date(
-  now_dhaka,
-  unit = "hour"
-)
-
-observation_time <- current_hour - hours(1)
+now_dhaka <-
+  now(
+    tz = timezone
+  )
 
 
 message("")
 message("================================================")
-message("OPENWEATHER OBSERVED WEATHER")
+message("OPENWEATHER HOURLY OBSERVED WEATHER")
 message("================================================")
 
 message(
   "Current Dhaka time: ",
-  format(now_dhaka, "%Y-%m-%d %H:%M:%S")
-)
-
-message(
-  "Observation time: ",
-  format(observation_time, "%Y-%m-%d %H:%M:%S")
+  format(
+    now_dhaka,
+    "%Y-%m-%d %H:%M:%S"
+  )
 )
 
 
 # ============================================================
-# CONVERT TO UNIX TIMESTAMP
+# 5. FIND LAST COMPLETED HOUR
 # ============================================================
 
-observation_utc <- with_tz(
-  observation_time,
-  "UTC"
-)
+# Example:
+#
+# Current time = 15:25
+# Current hour = 15:00
+# Last completed hour = 14:00
+#
+# Therefore the API will request the 14:00 observation.
 
-unix_timestamp <- as.numeric(
-  observation_utc
-)
+
+current_hour <-
+  floor_date(
+    now_dhaka,
+    unit = "hour"
+  )
+
+
+observation_time <-
+  current_hour -
+  hours(1)
+
 
 message(
-  "UTC time: ",
+  "Requested Dhaka observation time: ",
+  format(
+    observation_time,
+    "%Y-%m-%d %H:%M:%S"
+  )
+)
+
+
+# ============================================================
+# 6. CONVERT LOCAL TIME TO UTC
+# ============================================================
+
+observation_utc <-
+  with_tz(
+    observation_time,
+    "UTC"
+  )
+
+
+unix_timestamp <-
+  as.numeric(
+    observation_utc
+  )
+
+
+message(
+  "Requested UTC time: ",
   format(
     observation_utc,
     "%Y-%m-%d %H:%M:%S"
   )
 )
+
 
 message(
   "Unix timestamp: ",
@@ -121,11 +205,13 @@ message(
 
 
 # ============================================================
-# CALL OPENWEATHER
+# 7. CALL OPENWEATHER API
 # ============================================================
 
 message("")
-message("Requesting OpenWeather...")
+message(
+  "Requesting OpenWeather historical data..."
+)
 
 
 response <- tryCatch(
@@ -133,18 +219,31 @@ response <- tryCatch(
   request(api_url) |>
 
     req_url_query(
-      lat = latitude,
-      lon = longitude,
-      dt = unix_timestamp,
-      appid = api_key,
-      units = "metric"
+
+      lat =
+        latitude,
+
+      lon =
+        longitude,
+
+      dt =
+        unix_timestamp,
+
+      appid =
+        api_key,
+
+      units =
+        "metric"
+
     ) |>
 
     req_user_agent(
       "Dhaka Hourly Weather Data Collection"
     ) |>
 
-    req_timeout(60) |>
+    req_timeout(
+      60
+    ) |>
 
     req_perform(),
 
@@ -156,91 +255,125 @@ response <- tryCatch(
     )
 
   }
+
 )
 
 
 # ============================================================
-# CHECK HTTP STATUS
+# 8. CHECK HTTP STATUS
 # ============================================================
 
-status <- resp_status(response)
+status <-
+  resp_status(
+    response
+  )
+
 
 message(
   "HTTP status: ",
   status
 )
 
+
 if (status != 200) {
 
-  error_text <- resp_body_string(
+  error_text <-
+    resp_body_string(
+      response
+    )
+
+  stop(
+
+    "OpenWeather returned HTTP status ",
+    status,
+
+    "\n\nResponse:\n",
+    error_text
+
+  )
+
+}
+
+
+# ============================================================
+# 9. READ JSON
+# ============================================================
+
+json_text <-
+  resp_body_string(
     response
   )
 
+
+weather_data <-
+  fromJSON(
+    json_text,
+    flatten = TRUE
+  )
+
+
+# ============================================================
+# 10. CHECK FOR OBSERVATION DATA
+# ============================================================
+
+if (
+  is.null(
+    weather_data$data
+  )
+) {
+
   stop(
-    "\nOpenWeather returned HTTP ",
-    status,
-    "\n\nResponse:\n",
-    error_text
+    "OpenWeather returned no historical observation data."
   )
 
 }
 
 
-# ============================================================
-# PARSE JSON
-# ============================================================
-
-json_text <- resp_body_string(
-  response
-)
-
-weather_data <- fromJSON(
-  json_text,
-  flatten = TRUE
-)
-
-
-# ============================================================
-# CHECK DATA
-# ============================================================
-
-if (is.null(weather_data$data)) {
-
-  stop(
-    "OpenWeather did not return observation data."
+obs <-
+  as.data.frame(
+    weather_data$data
   )
 
-}
-
-
-obs <- as.data.frame(
-  weather_data$data
-)
 
 message(
-  "Observations returned: ",
+  "Number of observations returned: ",
   nrow(obs)
 )
 
 
 # ============================================================
-# HELPER FUNCTION
+# 11. HELPER FUNCTIONS
 # ============================================================
 
-get_value <- function(
+get_numeric <- function(
     df,
     column,
     default = NA_real_) {
 
-  if (column %in% names(df)) {
+  if (
+    column %in% names(df)
+  ) {
+
+    value <-
+      df[[column]][1]
+
+    if (
+      length(value) == 0 ||
+      is.null(value)
+    ) {
+
+      return(default)
+
+    }
 
     return(
-      df[[column]][1]
+      as.numeric(value)
     )
 
   }
 
   return(default)
+
 }
 
 
@@ -249,161 +382,372 @@ get_character <- function(
     column,
     default = NA_character_) {
 
-  if (column %in% names(df)) {
+  if (
+    column %in% names(df)
+  ) {
+
+    value <-
+      df[[column]][1]
+
+    if (
+      length(value) == 0 ||
+      is.null(value)
+    ) {
+
+      return(default)
+
+    }
 
     return(
-      as.character(
-        df[[column]][1]
-      )
+      as.character(value)
     )
 
   }
 
   return(default)
+
 }
 
 
 # ============================================================
-# OBSERVED DATETIME
+# 12. GET OBSERVED UNIX TIME
 # ============================================================
 
-observed_unix <- get_value(
-  obs,
-  "dt"
-)
-
-observed_datetime_utc <- as.POSIXct(
-  observed_unix,
-  origin = "1970-01-01",
-  tz = "UTC"
-)
-
-observed_datetime <- with_tz(
-  observed_datetime_utc,
-  timezone
-)
+observed_unix <-
+  get_numeric(
+    obs,
+    "dt"
+  )
 
 
-# ============================================================
-# WEATHER INFORMATION
-# ============================================================
+if (
+  is.na(observed_unix)
+) {
 
-weather_condition <- get_character(
-  obs,
-  "weather.1.main"
-)
+  stop(
+    "The API response does not contain a valid dt timestamp."
+  )
 
-weather_description <- get_character(
-  obs,
-  "weather.1.description"
-)
-
-weather_icon <- get_character(
-  obs,
-  "weather.1.icon"
-)
-
-weather_id <- get_value(
-  obs,
-  "weather.1.id",
-  NA_integer_
-)
+}
 
 
 # ============================================================
-# RAINFALL
+# 13. CONVERT OBSERVED TIME
 # ============================================================
 
-rain_1h <- get_value(
-  obs,
-  "rain.1h",
-  0
-)
-
-snow_1h <- get_value(
-  obs,
-  "snow.1h",
-  0
-)
+observed_datetime_utc <-
+  as.POSIXct(
+    observed_unix,
+    origin = "1970-01-01",
+    tz = "UTC"
+  )
 
 
-# ============================================================
-# CREATE FINAL DATA
-# ============================================================
-
-observed <- tibble(
-
-  location = location,
-
-  latitude = latitude,
-
-  longitude = longitude,
-
-  datetime_utc =
+observed_datetime_dhaka <-
+  with_tz(
     observed_datetime_utc,
-
-  datetime =
-    observed_datetime,
-
-  date =
-    as.Date(observed_datetime),
-
-  hour =
-    hour(observed_datetime),
-
-  temperature =
-    get_value(obs, "temp"),
-
-  feels_like =
-    get_value(obs, "feels_like"),
-
-  pressure =
-    get_value(obs, "pressure"),
-
-  humidity =
-    get_value(obs, "humidity"),
-
-  dew_point =
-    get_value(obs, "dew_point"),
-
-  clouds =
-    get_value(obs, "clouds"),
-
-  wind_speed =
-    get_value(obs, "wind_speed"),
-
-  wind_direction =
-    get_value(obs, "wind_deg"),
-
-  wind_gust =
-    get_value(obs, "wind_gust"),
-
-  visibility =
-    get_value(obs, "visibility"),
-
-  rain_1h =
-    rain_1h,
-
-  snow_1h =
-    snow_1h,
-
-  weather_condition =
-    weather_condition,
-
-  weather_description =
-    weather_description,
-
-  weather_id =
-    weather_id,
-
-  weather_icon =
-    weather_icon
-
-)
+    timezone
+  )
 
 
 # ============================================================
-# ROUND NUMERIC VARIABLES
+# 14. WEATHER CONDITION
+# ============================================================
+#
+# OpenWeather's weather field can appear in different
+# structures depending on how jsonlite flattens the response.
+#
+# We therefore check several possible column names.
+#
+# ============================================================
+
+
+weather_condition <-
+  NA_character_
+
+
+weather_description <-
+  NA_character_
+
+
+weather_id <-
+  NA_integer_
+
+
+weather_icon <-
+  NA_character_
+
+
+# ------------------------------------------------------------
+# Main flattened names
+# ------------------------------------------------------------
+
+if (
+  "weather.1.main"
+  %in%
+  names(obs)
+) {
+
+  weather_condition <-
+    get_character(
+      obs,
+      "weather.1.main"
+    )
+
+}
+
+
+if (
+  "weather.1.description"
+  %in%
+  names(obs)
+) {
+
+  weather_description <-
+    get_character(
+      obs,
+      "weather.1.description"
+    )
+
+}
+
+
+if (
+  "weather.1.id"
+  %in%
+  names(obs)
+) {
+
+  weather_id <-
+    get_numeric(
+      obs,
+      "weather.1.id"
+    )
+
+}
+
+
+if (
+  "weather.1.icon"
+  %in%
+  names(obs)
+) {
+
+  weather_icon <-
+    get_character(
+      obs,
+      "weather.1.icon"
+    )
+
+}
+
+
+# ============================================================
+# 15. RAINFALL
+# ============================================================
+
+rain_1h <-
+  get_numeric(
+    obs,
+    "rain.1h",
+    0
+  )
+
+
+snow_1h <-
+  get_numeric(
+    obs,
+    "snow.1h",
+    0
+  )
+
+
+# ============================================================
+# 16. CREATE OBSERVATION RECORD
+# ============================================================
+
+observed <-
+  tibble(
+
+    location =
+      location,
+
+    latitude =
+      latitude,
+
+    longitude =
+      longitude,
+
+
+    # --------------------------------------------------------
+    # UTC datetime
+    # --------------------------------------------------------
+
+    datetime_utc =
+      format(
+        observed_datetime_utc,
+        "%Y-%m-%d %H:%M:%S",
+        tz = "UTC"
+      ),
+
+
+    # --------------------------------------------------------
+    # Bangladesh local datetime
+    # --------------------------------------------------------
+
+    datetime =
+      format(
+        observed_datetime_dhaka,
+        "%Y-%m-%d %H:%M:%S",
+        tz = timezone
+      ),
+
+
+    # --------------------------------------------------------
+    # Bangladesh local date
+    # --------------------------------------------------------
+
+    date =
+      format(
+        observed_datetime_dhaka,
+        "%Y-%m-%d",
+        tz = timezone
+      ),
+
+
+    # --------------------------------------------------------
+    # Bangladesh local hour
+    # --------------------------------------------------------
+
+    hour =
+      hour(
+        observed_datetime_dhaka
+      ),
+
+
+    # --------------------------------------------------------
+    # Temperature
+    # --------------------------------------------------------
+
+    temperature =
+      get_numeric(
+        obs,
+        "temp"
+      ),
+
+
+    feels_like =
+      get_numeric(
+        obs,
+        "feels_like"
+      ),
+
+
+    # --------------------------------------------------------
+    # Atmospheric variables
+    # --------------------------------------------------------
+
+    pressure =
+      get_numeric(
+        obs,
+        "pressure"
+      ),
+
+    humidity =
+      get_numeric(
+        obs,
+        "humidity"
+      ),
+
+    dew_point =
+      get_numeric(
+        obs,
+        "dew_point"
+      ),
+
+
+    # --------------------------------------------------------
+    # Clouds
+    # --------------------------------------------------------
+
+    clouds =
+      get_numeric(
+        obs,
+        "clouds"
+      ),
+
+
+    # --------------------------------------------------------
+    # Wind
+    # --------------------------------------------------------
+
+    wind_speed =
+      get_numeric(
+        obs,
+        "wind_speed"
+      ),
+
+    wind_direction =
+      get_numeric(
+        obs,
+        "wind_deg"
+      ),
+
+    wind_gust =
+      get_numeric(
+        obs,
+        "wind_gust"
+      ),
+
+
+    # --------------------------------------------------------
+    # Visibility
+    # --------------------------------------------------------
+
+    visibility =
+      get_numeric(
+        obs,
+        "visibility"
+      ),
+
+
+    # --------------------------------------------------------
+    # Rain
+    # --------------------------------------------------------
+
+    rain_1h =
+      rain_1h,
+
+
+    # --------------------------------------------------------
+    # Snow
+    # --------------------------------------------------------
+
+    snow_1h =
+      snow_1h,
+
+
+    # --------------------------------------------------------
+    # Weather
+    # --------------------------------------------------------
+
+    weather_condition =
+      weather_condition,
+
+    weather_description =
+      weather_description,
+
+    weather_id =
+      weather_id,
+
+    weather_icon =
+      weather_icon
+
+  )
+
+
+# ============================================================
+# 17. ROUND NUMERIC VARIABLES
 # ============================================================
 
 numeric_columns <- c(
@@ -423,35 +767,44 @@ numeric_columns <- c(
 
 )
 
-observed <- observed |>
+
+observed <-
+  observed |>
 
   mutate(
 
     across(
-      all_of(numeric_columns),
+
+      all_of(
+        numeric_columns
+      ),
+
       ~ round(
         as.numeric(.x),
         2
       )
+
     )
 
   )
 
 
 # ============================================================
-# DISPLAY
+# 18. DISPLAY FINAL RECORD
 # ============================================================
 
 message("")
 message("================================================")
-message("DHAKA OBSERVED WEATHER")
+message("OBSERVATION TO BE STORED")
 message("================================================")
 
-print(observed)
+print(
+  observed
+)
 
 
 # ============================================================
-# GOOGLE SERVICE ACCOUNT
+# 19. GOOGLE SERVICE ACCOUNT
 # ============================================================
 
 google_credentials <-
@@ -459,7 +812,10 @@ google_credentials <-
     "GSHEET_JSON"
   )
 
-if (google_credentials == "") {
+
+if (
+  google_credentials == ""
+) {
 
   stop(
     "GSHEET_JSON GitHub Secret is missing."
@@ -468,9 +824,11 @@ if (google_credentials == "") {
 }
 
 
-credential_file <- tempfile(
-  fileext = ".json"
-)
+credential_file <-
+  tempfile(
+    fileext = ".json"
+  )
+
 
 writeLines(
   google_credentials,
@@ -479,46 +837,58 @@ writeLines(
 
 
 # ============================================================
-# GOOGLE AUTHENTICATION
-# ============================================================
-
-gs4_auth(
-  path = credential_file
-)
-
-
-# ============================================================
-# READ EXISTING SHEET
+# 20. GOOGLE SHEETS AUTHENTICATION
 # ============================================================
 
 message("")
 message(
-  "Reading Google Sheet..."
+  "Authenticating Google Sheets..."
 )
 
 
-existing <- tryCatch(
-
-  read_sheet(
-    ss = sheet_id,
-    sheet = sheet_name
-  ),
-
-  error = function(e) {
-
-    message(
-      "Sheet does not exist or is empty."
-    )
-
-    NULL
-
-  }
-
+gs4_auth(
+  path =
+    credential_file
 )
 
 
 # ============================================================
-# FIRST RUN
+# 21. READ EXISTING GOOGLE SHEET
+# ============================================================
+
+message(
+  "Reading existing Google Sheet..."
+)
+
+
+existing <-
+  tryCatch(
+
+    read_sheet(
+
+      ss =
+        sheet_id,
+
+      sheet =
+        sheet_name
+
+    ),
+
+    error = function(e) {
+
+      message(
+        "The sheet is empty or does not exist."
+      )
+
+      NULL
+
+    }
+
+  )
+
+
+# ============================================================
+# 22. FIRST RUN
 # ============================================================
 
 if (
@@ -530,13 +900,25 @@ if (
 ) {
 
   message(
-    "Creating initial sheet..."
+    "No existing data found."
   )
 
+  message(
+    "Creating the sheet..."
+  )
+
+
   sheet_write(
-    data = observed,
-    ss = sheet_id,
-    sheet = sheet_name
+
+    data =
+      observed,
+
+    ss =
+      sheet_id,
+
+    sheet =
+      sheet_name
+
   )
 
 
@@ -544,35 +926,39 @@ if (
 
 
   # ==========================================================
-  # EXISTING DATETIME
+  # 23. GET EXISTING UTC DATETIMES
   # ==========================================================
 
   if (
-    "datetime_utc" %in%
+    "datetime_utc"
+    %in%
     names(existing)
   ) {
 
-    existing_datetime <- as.character(
-      existing$datetime_utc
-    )
+    existing_datetime <-
+      as.character(
+        existing$datetime_utc
+      )
 
   } else {
 
-    existing_datetime <- character(0)
+    existing_datetime <-
+      character(0)
 
   }
 
 
   # ==========================================================
-  # REMOVE DUPLICATES
+  # 24. CHECK WHETHER OBSERVATION ALREADY EXISTS
   # ==========================================================
 
-  new_record <- observed |>
+  new_record <-
+    observed |>
 
     filter(
 
       !(
-        as.character(datetime_utc)
+        datetime_utc
         %in%
         existing_datetime
       )
@@ -581,7 +967,7 @@ if (
 
 
   # ==========================================================
-  # APPEND
+  # 25. APPEND NEW OBSERVATION
   # ==========================================================
 
   if (
@@ -589,19 +975,32 @@ if (
   ) {
 
     message(
-      "Appending ",
-      nrow(new_record),
-      " new observation(s)..."
-    )
-
-    sheet_append(
-      ss = sheet_id,
-      sheet = sheet_name,
-      data = new_record
+      "New observation found."
     )
 
     message(
-      "Successfully appended."
+      "Appending ",
+      nrow(new_record),
+      " record(s)..."
+    )
+
+
+    sheet_append(
+
+      ss =
+        sheet_id,
+
+      sheet =
+        sheet_name,
+
+      data =
+        new_record
+
+    )
+
+
+    message(
+      "Observation successfully appended."
     )
 
   } else {
@@ -610,13 +1009,17 @@ if (
       "Observation already exists."
     )
 
+    message(
+      "No duplicate record added."
+    )
+
   }
 
 }
 
 
 # ============================================================
-# CLEAN UP
+# 26. REMOVE TEMPORARY GOOGLE CREDENTIAL
 # ============================================================
 
 unlink(
@@ -624,7 +1027,29 @@ unlink(
 )
 
 
+# ============================================================
+# 27. FINAL MESSAGE
+# ============================================================
+
 message("")
 message("================================================")
-message("UPDATE COMPLETED")
+message("OPENWEATHER UPDATE COMPLETED")
+message("================================================")
+
+message(
+  "Bangladesh observation time: ",
+  format(
+    observed_datetime_dhaka,
+    "%Y-%m-%d %H:%M:%S"
+  )
+)
+
+message(
+  "UTC observation time: ",
+  format(
+    observed_datetime_utc,
+    "%Y-%m-%d %H:%M:%S"
+  )
+)
+
 message("================================================")
