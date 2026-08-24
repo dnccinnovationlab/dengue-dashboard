@@ -3,9 +3,9 @@
 # ============================================================
 #
 # Source:
-# https://www.bamis.gov.bd/bmd/wrf/table/all/1
+# https://www.bamis.gov.bd/en/bmd/wrf/table/all/1
 # ...
-# https://www.bamis.gov.bd/bmd/wrf/table/all/7
+# https://www.bamis.gov.bd/en/bmd/wrf/table/all/7
 #
 # Purpose:
 #   - Download BAMIS WRF forecasts for horizons 1-7
@@ -27,7 +27,8 @@ required_packages <- c(
   "dplyr",
   "stringr",
   "lubridate",
-  "googlesheets4"
+  "googlesheets4",
+  "httr"
 )
 
 
@@ -57,6 +58,7 @@ library(dplyr)
 library(stringr)
 library(lubridate)
 library(googlesheets4)
+library(httr)
 
 
 # ============================================================
@@ -79,7 +81,7 @@ sheet_id <-
 # ------------------------------------------------------------
 
 sheet_name <-
-  "weather_bamis_forecast"
+  "BAMIS_WRF_Forecast"
 
 
 # ------------------------------------------------------------
@@ -87,7 +89,7 @@ sheet_name <-
 # ------------------------------------------------------------
 
 base_url <-
-  "https://www.bamis.gov.bd/bmd/wrf/table/all/"
+  "https://www.bamis.gov.bd/en/bmd/wrf/table/all/"
 
 
 # ------------------------------------------------------------
@@ -96,6 +98,25 @@ base_url <-
 
 target_district <-
   "Dhaka"
+
+
+# ------------------------------------------------------------
+# Browser-like User-Agent
+#
+# BAMIS (and many .gov.bd sites) sit behind a WAF that
+# silently rejects requests carrying the default libcurl /
+# rvest user agent. A normal browser UA avoids that.
+# ------------------------------------------------------------
+
+browser_user_agent <-
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
+
+# ------------------------------------------------------------
+# Max download attempts per horizon
+# ------------------------------------------------------------
+
+max_download_attempts <- 4
 
 
 # ============================================================
@@ -375,6 +396,179 @@ choose_numeric_column <- function(
 
 # ============================================================
 # 8. FUNCTION:
+#    DOWNLOAD A URL WITH BROWSER HEADERS + RETRY
+# ============================================================
+#
+# This replaces a bare read_html(url) call, which is the
+# step that was failing with:
+#   "Unable to download BAMIS page. cannot open the connection"
+#
+# read_html() alone sends a plain libcurl User-Agent with no
+# retry. If the request is dropped once (WAF filtering a
+# non-browser UA, or a transient network hiccup on the GitHub
+# Actions runner), the whole job dies immediately.
+#
+# fetch_html_with_retry() instead:
+#   - sends a normal desktop-browser User-Agent + Accept headers
+#   - retries with backoff on connection errors or non-200s
+#   - only calls read_html() once we actually have HTML back
+# ============================================================
+
+fetch_html_with_retry <- function(
+    url,
+    max_attempts = max_download_attempts) {
+
+  last_error <- NULL
+
+
+  for (attempt in seq_len(max_attempts)) {
+
+    message(
+      "Fetch attempt ",
+      attempt,
+      " of ",
+      max_attempts,
+      " -> ",
+      url
+    )
+
+
+    response <- tryCatch(
+
+      httr::GET(
+
+        url,
+
+        httr::user_agent(
+          browser_user_agent
+        ),
+
+        httr::add_headers(
+          "Accept" =
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language" =
+            "en-US,en;q=0.9"
+        ),
+
+        httr::timeout(60)
+
+      ),
+
+      error = function(e) e
+
+    )
+
+
+    # --------------------------------------------------------
+    # Connection-level failure (DNS, TLS, timeout, refused...)
+    # --------------------------------------------------------
+
+    if (
+      inherits(
+        response,
+        "error"
+      )
+    ) {
+
+      last_error <-
+        response$message
+
+      message(
+        "  Connection error: ",
+        last_error
+      )
+
+      if (attempt < max_attempts) {
+
+        Sys.sleep(
+          5 * attempt
+        )
+
+      }
+
+      next
+
+    }
+
+
+    # --------------------------------------------------------
+    # HTTP-level failure (403, 429, 5xx, etc.)
+    # --------------------------------------------------------
+
+    status <-
+      httr::status_code(
+        response
+      )
+
+
+    if (
+      status != 200
+    ) {
+
+      last_error <-
+        paste0(
+          "HTTP status ",
+          status
+        )
+
+      message(
+        "  ",
+        last_error
+      )
+
+      if (attempt < max_attempts) {
+
+        Sys.sleep(
+          5 * attempt
+        )
+
+      }
+
+      next
+
+    }
+
+
+    # --------------------------------------------------------
+    # Success — parse and return
+    # --------------------------------------------------------
+
+    html_text <-
+      httr::content(
+        response,
+        as = "text",
+        encoding = "UTF-8"
+      )
+
+    return(
+      read_html(
+        html_text
+      )
+    )
+
+  }
+
+
+  # ----------------------------------------------------------
+  # All attempts failed
+  # ----------------------------------------------------------
+
+  stop(
+    "Unable to download page after ",
+    max_attempts,
+    " attempts.\n",
+    "URL: ",
+    url,
+    "\n",
+    "Last error: ",
+    last_error
+  )
+
+}
+
+
+# ============================================================
+# 9. FUNCTION:
 #    DOWNLOAD ONE BAMIS WRF HORIZON
 # ============================================================
 
@@ -413,23 +607,13 @@ read_wrf_horizon <- function(day) {
 
 
   # ----------------------------------------------------------
-  # Download page
+  # Download page (browser headers + retry)
   # ----------------------------------------------------------
 
-  page <- tryCatch(
-
-    read_html(url),
-
-    error = function(e) {
-
-      stop(
-        "Unable to download BAMIS page.\n",
-        e$message
-      )
-
-    }
-
-  )
+  page <-
+    fetch_html_with_retry(
+      url
+    )
 
 
   # ----------------------------------------------------------
@@ -614,7 +798,7 @@ read_wrf_horizon <- function(day) {
 
 
 # ============================================================
-# 9. DOWNLOAD HORIZONS 1 TO 7
+# 10. DOWNLOAD HORIZONS 1 TO 7
 # ============================================================
 
 message("")
@@ -639,7 +823,7 @@ wrf_tables <-
 
 
 # ============================================================
-# 10. USE DAY-7 TABLE TO IDENTIFY COLUMNS
+# 11. USE DAY-7 TABLE TO IDENTIFY COLUMNS
 # ============================================================
 
 df7 <-
@@ -910,7 +1094,7 @@ print(
 
 
 # ============================================================
-# 11. EXTRACT ALL HORIZONS
+# 12. EXTRACT ALL HORIZONS
 # ============================================================
 
 wrf_cumulative <-
@@ -1014,7 +1198,7 @@ wrf_cumulative <-
 
 
 # ============================================================
-# 12. PRINT RAW HORIZON DATA
+# 13. PRINT RAW HORIZON DATA
 # ============================================================
 
 message("")
@@ -1036,7 +1220,7 @@ print(
 
 
 # ============================================================
-# 13. FUNCTION:
+# 14. FUNCTION:
 # CUMULATIVE AVERAGE -> DAILY VALUE
 # ============================================================
 
@@ -1127,7 +1311,7 @@ cumulative_average_to_daily <-
 
 
 # ============================================================
-# 14. CONVERT AVERAGE VARIABLES
+# 15. CONVERT AVERAGE VARIABLES
 # ============================================================
 
 average_variables <- c(
@@ -1160,7 +1344,7 @@ for (
 
 
 # ============================================================
-# 15. RAINFALL:
+# 16. RAINFALL:
 # CUMULATIVE TOTAL -> DAILY TOTAL
 # ============================================================
 
@@ -1181,7 +1365,7 @@ wrf_cumulative$rainfall <-
 
 
 # ============================================================
-# 16. DATES
+# 17. DATES
 # ============================================================
 
 today <-
@@ -1206,7 +1390,7 @@ wrf_daily <-
 
 
 # ============================================================
-# 17. REMOVE SMALL NEGATIVE ROUNDING ERRORS
+# 18. REMOVE SMALL NEGATIVE ROUNDING ERRORS
 # ============================================================
 
 numeric_variables <- c(
@@ -1257,7 +1441,7 @@ wrf_daily <-
 
 
 # ============================================================
-# 18. ROUND VALUES
+# 19. ROUND VALUES
 # ============================================================
 
 wrf_daily <-
@@ -1288,7 +1472,7 @@ wrf_daily <-
 
 
 # ============================================================
-# 19. FINAL DATASET
+# 20. FINAL DATASET
 # ============================================================
 
 daily_forecast <-
@@ -1328,7 +1512,7 @@ daily_forecast <-
 
 
 # ============================================================
-# 20. PRINT FINAL FORECAST
+# 21. PRINT FINAL FORECAST
 # ============================================================
 
 message("")
@@ -1350,7 +1534,7 @@ print(
 
 
 # ============================================================
-# 21. CHECK 7 DAYS
+# 22. CHECK 7 DAYS
 # ============================================================
 
 if (
@@ -1371,7 +1555,7 @@ if (
 
 
 # ============================================================
-# 22. GOOGLE AUTHENTICATION
+# 23. GOOGLE AUTHENTICATION
 # ============================================================
 
 message("")
@@ -1424,7 +1608,7 @@ gs4_auth(
 
 
 # ============================================================
-# 23. READ EXISTING GOOGLE SHEET
+# 24. READ EXISTING GOOGLE SHEET
 # ============================================================
 
 message(
@@ -1465,7 +1649,7 @@ existing <-
 
 
 # ============================================================
-# 24. FIRST RUN
+# 25. FIRST RUN
 # ============================================================
 
 if (
@@ -1633,7 +1817,7 @@ if (
 
 
 # ============================================================
-# 25. DELETE TEMPORARY CREDENTIAL
+# 26. DELETE TEMPORARY CREDENTIAL
 # ============================================================
 
 unlink(
@@ -1642,7 +1826,7 @@ unlink(
 
 
 # ============================================================
-# 26. FINISH
+# 27. FINISH
 # ============================================================
 
 message("")
