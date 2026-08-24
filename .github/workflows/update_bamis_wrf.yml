@@ -53,4 +53,4 @@ jobs:
         env:
           GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GSHEET_JSON }}
         run: |
-          Rscript R/download_bamis_wrf.R
+          Rscript weather_daily_forecast_bamis.R
