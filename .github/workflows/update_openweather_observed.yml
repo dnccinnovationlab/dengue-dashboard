@@ -39,24 +39,16 @@ jobs:
       # ------------------------------------------------------
       # INSTALL PACKAGES
       # ------------------------------------------------------
-
-      - name: Install R packages
-
-        run: |
-
-          Rscript -e '
-          install.packages(
-            c(
-              "httr2",
-              "jsonlite",
-              "dplyr",
-              "lubridate",
-              "googlesheets4"
-            ),
-            repos = "https://cloud.r-project.org"
-          )
-          '
-
+      - name: Setup dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            httr2
+            dplyr
+            lubridate
+            googlesheets4
+            jsonlite
+          extra-repositories: https://packagemanager.posit.co/cran/latest
 
       # ------------------------------------------------------
       # RUN R SCRIPT
