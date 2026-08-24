@@ -1575,7 +1575,7 @@ if (
 ) {
 
   stop(
-    "GOOGLE_SERVICE_ACCOUNT secret is missing."
+    "GSHEET_JSON secret is missing."
   )
 
 }
