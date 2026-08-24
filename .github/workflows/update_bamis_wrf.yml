@@ -31,21 +31,17 @@ jobs:
       # ------------------------------------------------------
       # INSTALL PACKAGES
       # ------------------------------------------------------
-      - name: Install R packages
-        run: |
-          Rscript -e '
-          install.packages(
-            c(
-              "rvest",
-              "dplyr",
-              "stringr",
-              "lubridate",
-              "googlesheets4",
-              "httr"
-            ),
-            repos = "https://cloud.r-project.org"
-          )
-          '
+      - name: Setup dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            httr
+            stringr
+            rvest
+            dplyr
+            lubridate
+            googlesheets4
+          extra-repositories: https://packagemanager.posit.co/cran/latest
       # ------------------------------------------------------
       # RUN SCRAPER
       # ------------------------------------------------------
