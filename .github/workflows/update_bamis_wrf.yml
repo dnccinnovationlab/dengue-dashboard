@@ -1,10 +1,10 @@
 name: Update BAMIS WRF Forecast
 on:
-  # Every day at 08:00 Bangladesh time
+  # Every day at 11:37 Bangladesh time
   # Bangladesh = UTC + 6
-  # 08:00 BDT = 02:00 UTC
+  # 11:37 BDT = 05:37 UTC
   schedule:
-    - cron: "0 2 * * *"
+    - cron: "37 5 * * *"
   # Manual run
   workflow_dispatch:
 jobs:
