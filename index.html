@@ -1,93 +1,969 @@
 <!DOCTYPE html>
-<html>
-  <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-NMGKD8DWF8"></script>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ডেঙ্গু ওয়াচ | DGHS দৈনিক প্রতিবেদন</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  :root{
+    --ink:#122A2C;
+    --paper:#EEF3EF;
+    --panel:#FFFFFF;
+    --accent:#0E7C74;
+    --accent-dim:#0E7C7422;
+    --risk-high:#C13E36;
+    --risk-high-bg:#F8E2E0;
+    --risk-med:#D9A412;
+    --risk-low:#2E8E5B;
+    --nodata:#C7CFCD;
+    --line:#D7DED8;
+    --muted:#5B6E68;
+    --font-display:'Fraunces', Georgia, serif;
+    --font-body:'Inter', 'Hind Siliguri', sans-serif;
+    --font-bn:'Hind Siliguri', 'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-bn);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  body[data-lang="en"]{font-family:var(--font-body);}
+  [data-bn]{display:inline;}
+  [data-en]{display:none;}
+  body[data-lang="en"] [data-bn]{display:none;}
+  body[data-lang="en"] [data-en]{display:inline;}
+  a{color:inherit;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
+
+  header.nav{position:sticky;top:0;z-index:50;background:rgba(238,243,239,0.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1080px;margin:0 auto;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{width:30px;height:30px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);color:#fff;font-weight:700;font-size:15px;flex-shrink:0;}
+  .brand-name{font-family:var(--font-display);font-weight:600;font-size:17px;letter-spacing:.2px;}
+  .brand-sub{font-size:11px;color:var(--muted);letter-spacing:.3px;margin-top:1px;}
+  .nav-right{display:flex;align-items:center;gap:16px;}
+  .pulse-badge{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);font-family:var(--font-mono);}
+  .pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 2.2s infinite;}
+  .pulse-dot.warn{background:var(--risk-high);}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(14,124,116,.45);}70%{box-shadow:0 0 0 7px rgba(14,124,116,0);}100%{box-shadow:0 0 0 0 rgba(14,124,116,0);}}
+  .lang-toggle{display:flex;border:1px solid var(--line);border-radius:20px;overflow:hidden;font-family:var(--font-body);font-size:12px;font-weight:600;background:var(--panel);}
+  .lang-toggle button{border:none;background:transparent;padding:7px 14px;cursor:pointer;color:var(--muted);transition:.15s;}
+  .lang-toggle button.active{background:var(--ink);color:#fff;}
+  .refresh-btn{background:var(--ink);border:1px solid var(--ink);color:#fff;padding:7px 14px;border-radius:14px;font-family:var(--font-mono);font-size:11px;cursor:pointer;}
+
+  .hero{padding:44px 0 28px;position:relative;overflow:hidden;}
+  .hero::before{content:"";position:absolute;top:-140px;right:-140px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle, var(--accent-dim) 0%, transparent 70%);pointer-events:none;}
+  .eyebrow{font-family:var(--font-mono);font-size:12px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .eyebrow::before{content:"";width:18px;height:1px;background:var(--accent);display:inline-block;}
+  h1.headline{font-family:var(--font-display);font-weight:600;font-size:clamp(26px,4vw,42px);line-height:1.1;margin:0 0 12px;max-width:760px;letter-spacing:-.01em;}
+  .sub{color:var(--muted);font-size:14.5px;max-width:600px;margin:0;}
+  .asof{font-family:var(--font-mono);font-size:12px;color:var(--muted);margin-top:10px;}
+
+  .controls-bar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 0 26px;}
+  .toggle-group-label{font-family:var(--font-mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+  .toggle-block{display:flex;flex-direction:column;}
+
+  section.block{padding-bottom:44px;}
+  .source-tag{font-family:var(--font-mono);font-size:10.5px;color:var(--accent);background:var(--accent-dim);padding:4px 10px;border-radius:12px;text-transform:uppercase;letter-spacing:.05em;}
+
+  .cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  @media(max-width:820px){.cards-grid{grid-template-columns:1fr 1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;}
+  .card.big{background:var(--ink);color:#fff;grid-column:span 1;}
+  .card-label{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+  .card.big .card-label{color:#9FC9C4;}
+  .card-value{font-family:var(--font-display);font-size:34px;font-weight:600;margin-top:10px;}
+  .card-sub{font-size:11.5px;color:var(--muted);margin-top:6px;}
+  .card.big .card-sub{color:#B9D3CF;}
+  .card-value.up{color:var(--risk-high);}
+  .card-value.down{color:var(--accent);}
+  .card.big .card-value.up{color:#FF8B7E;}
+  .card.big .card-value.down{color:#7FE0C9;}
+
+  .chart-card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:26px;}
+  .chart-caption{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin-top:14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+
+  footer{padding:32px 0 60px;border-top:1px solid var(--line);margin-top:8px;}
+  .foot-grid{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;font-size:13px;color:var(--muted);}
+  .state-msg{font-family:var(--font-mono);font-size:13px;color:var(--muted);padding:30px;text-align:center;}
+
+  /* ---- Ward risk map ---- */
+  .map-card{background:var(--panel);border:1px solid var(--line);border-radius:20px;overflow:hidden;position:relative;}
+  #riskMap{width:100%;height:600px;background:#E4EBE6;}
+  .map-legend{display:flex;gap:18px;flex-wrap:wrap;padding:14px 22px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);align-items:center;}
+  .map-legend span{display:inline-flex;align-items:center;gap:7px;}
+  .legend-dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex-shrink:0;}
+  .map-updated{padding:16px 22px 0;font-family:var(--font-mono);font-size:12px;color:var(--muted);}
+  .map-loading{position:absolute;inset:0;background:rgba(238,243,239,.88);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12.5px;color:var(--muted);z-index:800;gap:10px;}
+  .map-spinner{width:18px;height:18px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:mapspin .8s linear infinite;}
+  @keyframes mapspin{to{transform:rotate(360deg);}}
+  .leaflet-tooltip.ward-tip{background:var(--ink);color:#fff;border:none;border-radius:7px;font-family:var(--font-body);font-size:12px;padding:4px 9px;}
+  .ward-popup{font-family:var(--font-body);min-width:220px;max-width:270px;}
+  .ward-popup h4{font-family:var(--font-display);margin:0 0 4px;font-size:16px;font-weight:600;}
+  .ward-popup .badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;color:#fff;margin-bottom:8px;font-family:var(--font-mono);letter-spacing:.02em;}
+  .ward-popup .summary{font-size:12.5px;color:var(--ink);line-height:1.5;margin-bottom:10px;}
+  .ward-popup table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .ward-popup td{padding:4px 0;border-top:1px solid var(--line);}
+  .ward-popup td.k{color:var(--muted);}
+  .ward-popup td.v{text-align:right;font-weight:700;font-family:var(--font-mono);}
+  .ward-popup .section-label{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:10px 0 2px;}
+
+  .date-input{font-family:var(--font-mono);font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--panel);color:var(--ink);}
+  .map-rank-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:stretch;}
+  @media(max-width:860px){.map-rank-grid{grid-template-columns:1fr;}}
+  .rank-card{padding:0;overflow:hidden;display:flex;flex-direction:column;height:100%;}
+  .rank-card-head{padding:18px 20px 12px;flex-shrink:0;border-bottom:1px solid var(--line);}
+  #rankTableWrap{flex:1 1 auto;overflow-y:auto;overflow-x:auto;}
+  .rank-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .rank-table thead th{position:sticky;top:0;z-index:2;}
+  .rank-table th{text-align:left;font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:10px 16px;border-bottom:1px solid var(--line);background:var(--paper);white-space:nowrap;}
+  .rank-table td{padding:10px 16px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .rank-table tr:nth-child(even) td{background:#FAFCFB;}
+  .rank-table td.rank-cell{font-family:var(--font-display);font-weight:700;font-size:15px;}
+  .rank-table td.ward-cell{font-weight:600;white-space:nowrap;}
+  .rank-table td.badge-cell span{display:inline-block;padding:3px 10px;border-radius:999px;color:#fff;font-size:11px;font-weight:600;font-family:var(--font-mono);white-space:nowrap;}
+</style>
+</head>
+<body data-lang="bn">
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="brand">
+      <div class="brand-mark">D</div>
+      <div>
+        <div class="brand-name" data-bn>ডেঙ্গু ওয়াচ</div>
+        <div class="brand-name" data-en>Dengue Watch</div>
+        <div class="brand-sub" data-bn>ঢাকা উত্তর সিটি কর্পোরেশন</div>
+        <div class="brand-sub" data-en>Dhaka North City Corporation</div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="pulse-badge"><span class="pulse-dot" id="pulseDot"></span></div>
+      <button class="refresh-btn" id="refreshBtn">↻ <span data-bn>রিফ্রেশ</span><span data-en>refresh</span></button>
+      <div class="lang-toggle"><button id="btnBn" class="active">বাংলা</button><button id="btnEn">EN</button></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1 class="headline">
+      <span data-bn>ঢাকা উত্তরের ডেঙ্গু পরিস্থিতি</span>
+      <span data-en>Dhaka North dengue situation</span>
+    </h1>
+    <p class="sub">
+      <span data-bn>স্বাস্থ্য অধিদপ্তরের (DGHS) দৈনিক প্রতিবেদন থেকে সরাসরি সংগৃহীত হাসপাতালে ভর্তি ও মৃত্যুর তথ্য।</span>
+      <span data-en>Hospital-admission and death figures sourced live from the Directorate General of Health Services (DGHS) daily report.</span>
+    </p>
+    <div class="asof" id="asofLine"><span data-bn>সর্বশেষ হালনাগাদ:</span><span data-en>Last updated:</span> —</div>
+  </section>
+
+  <section class="block">
+    <div class="controls-bar">
+      <div class="toggle-block">
+        <span class="toggle-group-label"><span data-bn>সময়কাল</span><span data-en>Time period</span></span>
+        <div class="lang-toggle" id="granToggle">
+          <button data-g="daily" class="active"><span data-bn>দৈনিক</span><span data-en>Daily</span></button>
+          <button data-g="weekly"><span data-bn>সাপ্তাহিক</span><span data-en>Weekly</span></button>
+          <button data-g="monthly"><span data-bn>মাসিক</span><span data-en>Monthly</span></button>
+          <button data-g="yearly"><span data-bn>বার্ষিক</span><span data-en>Yearly</span></button>
+        </div>
+      </div>
+      <div class="toggle-block">
+        <span class="toggle-group-label"><span data-bn>নির্দেশক</span><span data-en>Metric</span></span>
+        <div class="lang-toggle" id="metricToggle">
+          <button data-m="patients" class="active"><span data-bn>🏥 রোগী</span><span data-en>🏥 Patients</span></button>
+          <button data-m="deaths"><span data-bn>✝ মৃত্যু</span><span data-en>✝ Deaths</span></button>
+        </div>
+      </div>
+      <a class="source-tag" href="https://dashboard.dghs.gov.bd/pages/heoc_dengue_v1.php" target="_blank" rel="noopener" style="text-decoration:none;">Source: DGHS</a>
+    </div>
+
+    <div class="cards-grid" id="cardsGrid">
+      <div class="state-msg" data-bn>উপাত্ত লোড হচ্ছে…</div>
+      <div class="state-msg" data-en>Loading data…</div>
+    </div>
+
+    <div class="toggle-block" id="yearFilterBlock" style="margin-bottom:12px;">
+      <span class="toggle-group-label"><span data-bn>বছর (একাধিক নির্বাচন)</span><span data-en>Year (select multiple)</span></span>
+      <div class="lang-toggle" id="yearToggle"></div>
+    </div>
+
+    <div class="chart-card">
+      <div id="trendChart"><div class="state-msg" data-bn>প্রস্তুত হচ্ছে…</div></div>
+      <div class="chart-caption">
+        <span data-bn>উৎস: DGHS দৈনিক প্রতিবেদন</span><span data-en>Source: DGHS daily report</span>
+        <span id="trendRange">—</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="mapSection">
+    <div class="controls-bar">
+      <div>
+        <h2 style="font-family:var(--font-display);font-weight:600;font-size:20px;margin:0 0 4px;color:var(--ink);">
+          <span data-bn>ওয়ার্ডভিত্তিক ডেঙ্গু ঝুঁকি সূচক</span><span data-en>Ward wise Dengue Risk Index</span>
+        </h2>
+        <a href="https://drive.google.com/file/d/1QsvBzixKc2XU9-jsugV6qU7Oo5hrc65u/view?usp=drive_link" target="_blank" rel="noopener" style="font-family:var(--font-mono);font-size:11px;color:var(--accent);text-decoration:none;">
+          <span data-bn>পদ্ধতি (মেথডোলজি) →</span><span data-en>Methodology →</span>
+        </a>
+      </div>
+      <div class="toggle-block">
+        <span class="toggle-group-label"><span data-bn>তারিখ নির্বাচন করুন</span><span data-en>Select date</span></span>
+        <input type="date" id="riskDateFilter" class="date-input">
+      </div>
+    </div>
+
+    <div class="map-rank-grid">
+      <div class="map-card">
+        <div class="map-updated" id="mapUpdated">—</div>
+        <div id="riskMap"></div>
+        <div class="map-loading" id="mapLoading"><span class="map-spinner"></span><span data-bn>লাইভ ঝুঁকি তথ্য আনা হচ্ছে…</span><span data-en>Loading live risk data…</span></div>
+        <div class="map-legend">
+          <span><i class="legend-dot" style="background:var(--risk-high)"></i><span data-bn>বেশি ঝুঁকি</span><span data-en>High risk</span></span>
+          <span><i class="legend-dot" style="background:var(--risk-med)"></i><span data-bn>মাঝারি ঝুঁকি</span><span data-en>Moderate risk</span></span>
+          <span><i class="legend-dot" style="background:var(--risk-low)"></i><span data-bn>কম ঝুঁকি</span><span data-en>Low risk</span></span>
+          <span><i class="legend-dot" style="background:var(--nodata)"></i><span data-bn>তথ্য নেই</span><span data-en>No data</span></span>
+        </div>
+      </div>
+
+      <div class="chart-card rank-card">
+        <div class="rank-card-head">
+          <div class="card-label"><span data-bn>ওয়ার্ড র‍্যাংকিং</span><span data-en>Ward ranking</span></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;"><span data-bn>সবচেয়ে ঝুঁকিপূর্ণ ওয়ার্ড উপরে রয়েছে</span><span data-en>Most at-risk ward on top</span></div>
+        </div>
+        <div id="rankTableWrap">
+          <table class="rank-table" id="rankTable"></table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+/* ---------------- CONFIG ---------------- */
+const SHEET_HOSP_ID = "1EMva389XPbDyJs80M3FZhgj8hGNCOouWzo4bz0cr0Ww";
+const DGHS_TAB = "daily_dengue_dghs";
+const dghsCsvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_HOSP_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(DGHS_TAB)}`;
 
-  gtag('config', 'G-NMGKD8DWF8');
-</script>
-    <title>Dengue dashboard</title>
-    <style>
-      #tableauViz {
-        width: 1280px;
-        height: 2390px;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="tableauViz"></div>
+/* ---------------- LANG TOGGLE ---------------- */
+const btnBn = document.getElementById('btnBn');
+const btnEn = document.getElementById('btnEn');
+btnBn.addEventListener('click', () => setLang('bn'));
+btnEn.addEventListener('click', () => setLang('en'));
+function setLang(l){
+  document.body.setAttribute('data-lang', l);
+  btnBn.classList.toggle('active', l==='bn');
+  btnEn.classList.toggle('active', l==='en');
+  if(typeof onLangChangeForMap === 'function') onLangChangeForMap(l);
+  if(dghsDailySeries.length) renderTrendChart();
+}
 
-    <script type="module">
-      import { TableauViz } from "https://public.tableau.com/javascripts/api/tableau.embedding.3.latest.js";
+/* ---------------- CSV PARSER ---------------- */
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i], next = text[i+1];
+    if(inQuotes){
+      if(c === '"' && next === '"'){ field += '"'; i++; }
+      else if(c === '"'){ inQuotes = false; }
+      else { field += c; }
+    } else {
+      if(c === '"'){ inQuotes = true; }
+      else if(c === ','){ row.push(field); field=''; }
+      else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c === '\r'){ }
+      else { field += c; }
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  const headers = rows.shift().map(h => h.trim());
+  return { headers, records: rows.filter(r => r.length === headers.length && r.some(v=>v!=='')).map(r=>{
+    const obj = {};
+    headers.forEach((h,idx) => obj[h] = r[idx]);
+    return obj;
+  })};
+}
+function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function findCol(headers, patterns){
+  const lower = headers.map(h => h.toLowerCase());
+  for(const p of patterns){
+    const idx = lower.findIndex(h => h.includes(p));
+    if(idx !== -1) return headers[idx];
+  }
+  return null;
+}
+function findColExact(headers, name){
+  const idx = headers.findIndex(h => h.trim().toLowerCase() === name.toLowerCase());
+  if(idx !== -1) return headers[idx];
+  const idx2 = headers.findIndex(h => h.toLowerCase().includes(name.toLowerCase()));
+  return idx2 !== -1 ? headers[idx2] : null;
+}
+function fmtPct(v){ if(v===null||!isFinite(v)) return '—'; const s = v>=0?'▲':'▼'; return s+' '+Math.abs(v).toFixed(0)+'%'; }
+function fmtRate(v){ return (v===null||!isFinite(v)) ? '—' : v.toFixed(1)+'%'; }
+function iso(d){ return d.toISOString().slice(0,10); }
+function ymd(y, m, d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
-      document.addEventListener("DOMContentLoaded", () => {
-        const viz = new TableauViz();
-        viz.src = "https://public.tableau.com/views/DNCCDengueWatch_bn/Dashboard2?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_linksplay_count=n&:origin=viz_share_link";
-        viz.toolbar = "hidden";
+let dghsDailySeries = [];
+let lastDate = null;
+let currentGranularity = 'daily';
+let currentMetric = 'patients';
+let selectedYears = new Set();
+const YEAR_COLORS = ['#0E7C74','#C13E36','#8E5BC1','#C1900E','#3E6FC1','#2E8E5B','#C15B9E'];
+const MONTH_LABELS_BN = ['জানু','ফেব্রু','মার্চ','এপ্রি','মে','জুন','জুলা','আগ','সেপ্টে','অক্টো','নভে','ডিসে'];
+const MONTH_LABELS_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dayOfYearUTC(d){
+  const start = Date.UTC(d.getUTCFullYear(),0,1);
+  return Math.floor((Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()) - start)/86400000) + 1;
+}
 
-        // Optional: also set dimensions via JS
-        viz.style.width = "1280px";
-        viz.style.height = "2390px";
+/* ---------------- EPI WEEK (Monday-start, ISO 8601) — all arithmetic in UTC to avoid
+   local-timezone date-boundary shifts (date-only CSV values are parsed as UTC midnight) ---------------- */
+function mondayOf(date){
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = (d.getUTCDay() + 6) % 7; // Monday=0 ... Sunday=6
+  d.setUTCDate(d.getUTCDate() - day);
+  return d;
+}
+function isoWeekOf(date){
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const dayNum = d.getUTCDay() || 7; // Sunday=0 -> 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return { year: d.getUTCFullYear(), week: weekNo };
+}
+function mondayOfISOWeek(week, year){
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const jan4Day = (jan4.getUTCDay() + 6) % 7;
+  const week1Monday = new Date(jan4); week1Monday.setUTCDate(jan4.getUTCDate() - jan4Day);
+  const monday = new Date(week1Monday); monday.setUTCDate(week1Monday.getUTCDate() + (week-1)*7);
+  return monday;
+}
+function weekKey(dateStr){
+  const { year, week } = isoWeekOf(new Date(dateStr));
+  return year + '-W' + String(week).padStart(2,'0');
+}
+function monthKey(dateStr){ const d = new Date(dateStr); return d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0'); }
+function yearKey(dateStr){ return String(new Date(dateStr).getUTCFullYear()); }
 
-        document.getElementById("tableauViz").appendChild(viz);
-      });
-    </script>
-    <!-- Citizen Feedback Section -->
-<h2 style="font-family: Kalpurush, sans-serif; font-size:16px; text-align:center;">
-  ডেঙ্গু ড্যাশবোর্ড সংক্রান্ত আপনার মতামত দিন
-</h2>
+const ZERO = { patients:0, deaths:0, affected:0, dhakaCase:0, bdDeath:0, dhakaDeath:0 };
+function addRec(a,b){
+  return { patients:a.patients+b.patients, deaths:a.deaths+b.deaths, affected:a.affected+b.affected,
+    dhakaCase:a.dhakaCase+b.dhakaCase, bdDeath:a.bdDeath+b.bdDeath, dhakaDeath:a.dhakaDeath+b.dhakaDeath };
+}
 
-<form id="feedbackForm" style="font-family: Kalpurush, sans-serif; font-size:12px; max-width:600px; margin:auto; background:#fff; padding:20px; border:1px solid #ddd; border-radius:8px;">
-
-  <label>ড্যাশবোর্ডের তথ্যগুলো কি কার্যকর ছিল?</label><br>
-  <input type="radio" name="useful" value="হ্যাঁ"> হ্যাঁ
-  <input type="radio" name="useful" value="না"> না
-  <br><br>
-
-  <label>সবচেয়ে উপকারী তথ্য কোনটি মনে হয়েছে?</label><br>
-  <input type="text" name="helpful" style="width:100%; padding:6px; font-family: Kalpurush; font-size:12px;">
-  <br><br>
-
-  <label>আপনার প্রস্তাবনা (যদি থাকে):</label><br>
-  <textarea name="suggestions" style="width:100%; height:100px; padding:6px; font-family: Kalpurush; font-size:12px;"></textarea>
-  <br><br>
-
-  <button type="submit" style="padding:8px 16px; background:#28a745; color:white; border:none; border-radius:4px; cursor:pointer; font-family: Kalpurush; font-size:12px;">
-    জমা দিন
-  </button>
-</form>
-
-<script>
-  const scriptURL = "https://script.google.com/macros/s/AKfycbz9WK98XvVrJemOnrW3p1zaYEZ9PPZyQpQMbuCThUzOiz7pkthVDJA1JsCeGsUofLVOyg/exec"; // এখানে Apps Script থেকে পাওয়া URL দিন
-
-  document.getElementById("feedbackForm").addEventListener("submit", function(e) {
-    e.preventDefault();
-
-    const formData = {
-      useful: document.querySelector('input[name="useful"]:checked')?.value || "",
-      helpful: document.querySelector('input[name="helpful"]').value,
-      suggestions: document.querySelector('textarea[name="suggestions"]').value
-    };
-
-    fetch(scriptURL, {
-      method: "POST",
-      body: JSON.stringify(formData)
-    })
-    .then(res => alert("আপনার মতামত গ্রহণ করা হয়েছে, ধন্যবাদ!"))
-    .catch(err => alert("সাবমিট করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।"));
+function aggregateSeries(series, granularity){
+  if(granularity === 'daily') return series.slice(-120).map(d => ({ label: d.date.slice(5), ...d }));
+  const keyFn = granularity === 'weekly' ? weekKey : granularity === 'monthly' ? monthKey : yearKey;
+  const map = new Map();
+  series.forEach(d => {
+    const k = keyFn(d.date);
+    if(!map.has(k)) map.set(k, { ...ZERO });
+    map.set(k, addRec(map.get(k), d));
   });
+  return Array.from(map.entries()).sort((a,b) => a[0].localeCompare(b[0])).map(([k,v]) => ({ label: k, ...v }));
+}
+
+/* ---- per-year, period-of-year series (for multi-year overlay comparison) ---- */
+function buildYearSeries(year, granularity, lang){
+  const yearRows = dghsDailySeries.filter(d => d.date.slice(0,4) === String(year));
+  if(granularity === 'daily'){
+    return yearRows.map(d => ({ period: dayOfYearUTC(new Date(d.date)), label: d.date.slice(5), ...d }));
+  }
+  if(granularity === 'weekly'){
+    const map = new Map();
+    yearRows.forEach(d => {
+      const { week } = isoWeekOf(new Date(d.date));
+      if(!map.has(week)) map.set(week, { ...ZERO });
+      map.set(week, addRec(map.get(week), d));
+    });
+    return Array.from(map.entries()).sort((a,b)=>a[0]-b[0]).map(([week,v]) => ({ period: week, label: 'W'+String(week).padStart(2,'0'), ...v }));
+  }
+  const map = new Map();
+  yearRows.forEach(d => {
+    const dt = new Date(d.date);
+    const m = dt.getUTCMonth()+1;
+    if(!map.has(m)) map.set(m, { ...ZERO });
+    map.set(m, addRec(map.get(m), d));
+  });
+  const monthLabels = lang === 'en' ? MONTH_LABELS_EN : MONTH_LABELS_BN;
+  return Array.from(map.entries()).sort((a,b)=>a[0]-b[0]).map(([m,v]) => ({ period: m, label: monthLabels[m-1], ...v }));
+}
+function populateYearToggle(){
+  const years = Array.from(new Set(dghsDailySeries.map(d => Number(d.date.slice(0,4))))).sort();
+  const box = document.getElementById('yearToggle');
+  box.innerHTML = years.map(y => `<button data-y="${y}" class="${selectedYears.has(y)?'active':''}">${y}</button>`).join('');
+  box.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    const y = Number(b.dataset.y);
+    if(selectedYears.has(y)){ if(selectedYears.size > 1) selectedYears.delete(y); }
+    else selectedYears.add(y);
+    b.classList.toggle('active', selectedYears.has(y));
+    renderTrendChart();
+  }));
+}
+
+function sumBetween(series, startDate, endDate){
+  return series.filter(d => d.date >= startDate && d.date <= endDate).reduce((acc,d)=>addRec(acc,d), { ...ZERO });
+}
+function pct(curr, base){ return base > 0 ? ((curr-base)/base*100) : (curr>0 ? null : 0); }
+
+/* ---------------- RANGE DEFINITIONS PER GRANULARITY ---------------- */
+function getRanges(gran, last){
+  const Y = last.getUTCFullYear(), M = last.getUTCMonth(), D = last.getUTCDate();
+  if(gran === 'daily'){
+    const prevD = new Date(last); prevD.setUTCDate(prevD.getUTCDate()-1);
+    const yagoD = new Date(Date.UTC(Y-1, M, D));
+    return {
+      cur:[iso(last), iso(last)], prev:[iso(prevD), iso(prevD)], yago:[iso(yagoD), iso(yagoD)],
+      curLabel:{bn:'আজ', en:'Today'}, prevLabel:{bn:'গতকালের তুলনায়', en:'vs yesterday'}, yagoLabel:{bn:'গত বছরের একই দিনের তুলনায়', en:'vs same day last year'}
+    };
+  }
+  if(gran === 'weekly'){
+    const curStart = mondayOf(last);
+    const prevEnd = new Date(curStart); prevEnd.setUTCDate(prevEnd.getUTCDate()-1);
+    const prevStart = mondayOf(prevEnd);
+    const { year: wYear, week: wNum } = isoWeekOf(last);
+    const yagoStart = mondayOfISOWeek(wNum, wYear-1);
+    const elapsedDays = Math.round((last - curStart) / 86400000);
+    const yagoEnd = new Date(yagoStart); yagoEnd.setUTCDate(yagoEnd.getUTCDate() + elapsedDays);
+    return {
+      cur:[iso(curStart), iso(last)], prev:[iso(prevStart), iso(prevEnd)], yago:[iso(yagoStart), iso(yagoEnd)],
+      curLabel:{bn:'এই সপ্তাহে (সোমবার শুরু)', en:'This week (Mon–Sun)'}, prevLabel:{bn:'আগের সপ্তাহের তুলনায়', en:'vs prior week'}, yagoLabel:{bn:'গত বছরের একই সপ্তাহের তুলনায়', en:'vs same epi week last year'}
+    };
+  }
+  if(gran === 'monthly'){
+    const curStart = new Date(Date.UTC(Y, M, 1));
+    const prevMonthEnd = new Date(Date.UTC(Y, M, 0));
+    const prevMonthStart = new Date(Date.UTC(Y, M-1, 1));
+    const yagoStart = new Date(Date.UTC(Y-1, M, 1));
+    const yagoEnd = new Date(Date.UTC(Y-1, M, D));
+    return {
+      cur:[iso(curStart), iso(last)], prev:[iso(prevMonthStart), iso(prevMonthEnd)], yago:[iso(yagoStart), iso(yagoEnd)],
+      curLabel:{bn:'এই মাসে', en:'This month'}, prevLabel:{bn:'আগের মাসের তুলনায়', en:'vs prior month'}, yagoLabel:{bn:'গত বছরের একই মাসের তুলনায়', en:'vs same month last year'}
+    };
+  }
+  const curStart = new Date(Date.UTC(Y,0,1));
+  const prevStart = new Date(Date.UTC(Y-1,0,1));
+  const prevEnd = new Date(Date.UTC(Y-1,M,D));
+  return {
+    cur:[iso(curStart), iso(last)], prev:[iso(prevStart), iso(prevEnd)], yago:null,
+    curLabel:{bn:`এই বছরে (${Y}, YTD)`, en:`This year (${Y}, YTD)`}, prevLabel:{bn:'আগের বছরের একই সময়ের তুলনায়', en:'vs same YTD period last year'}, yagoLabel:null
+  };
+}
+
+/* ---------------- RENDER CARDS ---------------- */
+function renderCards(){
+  const grid = document.getElementById('cardsGrid');
+  if(!dghsDailySeries.length || !lastDate) return;
+  const r = getRanges(currentGranularity, lastDate);
+  const Y = lastDate.getFullYear();
+  const curAgg = sumBetween(dghsDailySeries, r.cur[0], r.cur[1]);
+  const prevAgg = sumBetween(dghsDailySeries, r.prev[0], r.prev[1]);
+  const yagoAgg = r.yago ? sumBetween(dghsDailySeries, r.yago[0], r.yago[1]) : null;
+  const ytdAgg = sumBetween(dghsDailySeries, iso(new Date(Date.UTC(Y,0,1))), iso(lastDate));
+
+  const curV = curAgg[currentMetric], prevV = prevAgg[currentMetric], yagoV = yagoAgg ? yagoAgg[currentMetric] : null, ytdV = ytdAgg[currentMetric];
+  const pctPrev = pct(curV, prevV);
+  const pctYago = yagoV !== null ? pct(curV, yagoV) : null;
+  const upDown = v => v>0 ? 'up' : v<0 ? 'down' : '';
+
+  const bdTotalKey = currentMetric === 'patients' ? 'affected' : 'bdDeath';
+  const dhakaTotalKey = currentMetric === 'patients' ? 'dhakaCase' : 'dhakaDeath';
+  const rateBD = curAgg[bdTotalKey] > 0 ? (curV / curAgg[bdTotalKey]) * 100 : null;
+  const rateDhaka = curAgg[dhakaTotalKey] > 0 ? (curV / curAgg[dhakaTotalKey]) * 100 : null;
+
+  let cards = [
+    `<div class="card big">
+      <div class="card-label">${r.curLabel.bn ? `<span data-bn>${r.curLabel.bn}</span><span data-en>${r.curLabel.en}</span>` : ''}</div>
+      <div class="card-value">${curV.toLocaleString()}</div>
+      <div class="card-sub"><span data-bn>${currentMetric==='patients'?'ডিএনসিসিতে হাসপাতালে ভর্তিকৃত রোগী':'ডিএনসিসিতে ডেঙ্গুর কারণে মৃত্যু'}</span><span data-en>${currentMetric==='patients'?'DNCC hospital-admitted patients':'DNCC dengue deaths'}</span></div>
+    </div>`,
+    `<div class="card">
+      <div class="card-label"><span data-bn>${r.prevLabel.bn}</span><span data-en>${r.prevLabel.en}</span></div>
+      <div class="card-value ${upDown(pctPrev)}">${fmtPct(pctPrev)}</div>
+      <div class="card-sub">${prevV.toLocaleString()} <span data-bn>ছিল আগের সময়ে</span><span data-en>in the prior period</span></div>
+    </div>`
+  ];
+  if(r.yago){
+    cards.push(`<div class="card">
+      <div class="card-label"><span data-bn>${r.yagoLabel.bn}</span><span data-en>${r.yagoLabel.en}</span></div>
+      <div class="card-value ${upDown(pctYago)}">${fmtPct(pctYago)}</div>
+      <div class="card-sub">${yagoV.toLocaleString()} <span data-bn>ছিল গত বছর</span><span data-en>last year</span></div>
+    </div>`);
+  }
+  if(currentGranularity !== 'yearly'){
+    cards.push(`<div class="card">
+      <div class="card-label"><span data-bn>১ জানুয়ারি ${Y} থেকে অদ্যাবধি</span><span data-en>Since Jan 1, ${Y} (YTD)</span></div>
+      <div class="card-value">${ytdV.toLocaleString()}</div>
+      <div class="card-sub"><span data-bn>চলতি বছরের সঞ্চিত সংখ্যা</span><span data-en>cumulative this year</span></div>
+    </div>`);
+  }
+  cards.push(`<div class="card">
+    <div class="card-label"><span data-bn>বাংলাদেশের মধ্যে হার</span><span data-en>Share of Bangladesh total</span></div>
+    <div class="card-value" style="font-size:26px;">${fmtRate(rateBD)}</div>
+  </div>`);
+  cards.push(`<div class="card">
+    <div class="card-label"><span data-bn>ঢাকা সিটির মধ্যে হার</span><span data-en>Share of Dhaka city total</span></div>
+    <div class="card-value" style="font-size:26px;">${fmtRate(rateDhaka)}</div>
+  </div>`);
+
+  grid.innerHTML = cards.join('');
+}
+
+/* ---------------- RENDER CHART ---------------- */
+function renderLinesChart(container, series, rangeEl){
+  const W = 1000, H = 280, padL = 44, padR = 20, padT = 20, padB = 32;
+  const allPoints = series.flatMap(s => s.points);
+  if(!allPoints.length){ container.innerHTML = '<div class="state-msg">No trend data.</div>'; return; }
+  const maxVal = Math.max(...allPoints.map(p => p.y), 1);
+  const minX = Math.min(...allPoints.map(p => p.x));
+  const maxX = Math.max(...allPoints.map(p => p.x));
+  const spanX = Math.max(maxX - minX, 1);
+  const scaleX = x => padL + ((x - minX) / spanX) * (W - padL - padR);
+  const scaleY = v => H - padB - (v / maxVal) * (H - padT - padB);
+
+  let gridlines = '';
+  for(let g=0; g<=4; g++){ const y = padT + g*(H-padT-padB)/4; gridlines += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W-padR}" y2="${y.toFixed(1)}" stroke="#D7DED8" stroke-width="1"/>`; }
+
+  let paths = '';
+  series.forEach(s => {
+    if(!s.points.length) return;
+    let path = '';
+    s.points.forEach((p,i) => { const x = scaleX(p.x), y = scaleY(p.y); path += (i===0?'M':'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' '; });
+    paths += `<path d="${path}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  });
+
+  const ref = series.reduce((a,b)=> a.points.length>=b.points.length?a:b, series[0]);
+  const labelEvery = Math.max(Math.floor(ref.points.length / 9), 1);
+  let xLabels = '';
+  ref.points.forEach((p,i) => { if(i % labelEvery === 0 || i === ref.points.length-1){ xLabels += `<text x="${scaleX(p.x).toFixed(1)}" y="${H-10}" font-size="9" fill="#5B6E68" font-family="JetBrains Mono, monospace" text-anchor="middle">${p.label}</text>`; } });
+
+  const legend = series.map(s => `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;"><i style="width:10px;height:10px;border-radius:3px;background:${s.color};display:inline-block;"></i>${s.name}</span>`).join('');
+
+  container.innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--muted);font-family:var(--font-mono);">${legend}</div>
+    <div style="position:relative;">
+      <svg id="trendSvg" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible;display:block;">
+        ${gridlines}
+        ${paths}
+        ${xLabels}
+        <g id="hoverLayer" style="display:none;"><line id="hoverLine" x1="0" y1="${padT}" x2="0" y2="${H-padB}" stroke="#5B6E68" stroke-width="1" stroke-dasharray="3,3"/></g>
+        <rect id="chartOverlay" x="${padL}" y="${padT}" width="${Math.max(W-padL-padR,1)}" height="${Math.max(H-padT-padB,1)}" fill="transparent" style="cursor:crosshair;"/>
+      </svg>
+      <div id="chartTooltip" style="position:absolute;display:none;pointer-events:none;background:var(--ink);color:#fff;font-family:var(--font-body);font-size:12.5px;line-height:1.6;padding:8px 12px;border-radius:10px;white-space:nowrap;transform:translate(-50%,-112%);z-index:5;box-shadow:0 6px 18px rgba(18,42,44,.35);font-variant-numeric:tabular-nums;"></div>
+    </div>`;
+
+  const svgEl = document.getElementById('trendSvg');
+  const overlay = document.getElementById('chartOverlay');
+  const hoverLayer = document.getElementById('hoverLayer');
+  const hoverLine = document.getElementById('hoverLine');
+  const tooltip = document.getElementById('chartTooltip');
+  const wrapperEl = svgEl.parentElement;
+
+  function nearestPoint(refX){
+    let best = null, bestD = Infinity;
+    ref.points.forEach(p => { const d = Math.abs(p.x - refX); if(d < bestD){ bestD = d; best = p; } });
+    return best;
+  }
+  function handleMove(evt){
+    const rect = svgEl.getBoundingClientRect();
+    if(rect.width === 0) return;
+    const scaleFactor = W / rect.width;
+    const clientX = (evt.touches ? evt.touches[0].clientX : evt.clientX);
+    const xInSvg = (clientX - rect.left) * scaleFactor;
+    const refX = minX + ((xInSvg - padL) / (W-padL-padR)) * spanX;
+    const nearest = nearestPoint(refX);
+    if(!nearest) return;
+    const px = scaleX(nearest.x);
+    hoverLine.setAttribute('x1', px); hoverLine.setAttribute('x2', px);
+    hoverLayer.style.display = '';
+    tooltip.style.display = '';
+    let rows = '';
+    series.forEach(s => {
+      const p = s.points.find(pp => pp.x === nearest.x);
+      if(p) rows += `<div><span style="color:${s.color};">●</span> ${s.name}: <b>${p.y.toLocaleString()}</b></div>`;
+    });
+    tooltip.innerHTML = `<div style="font-family:var(--font-mono);font-size:10.5px;color:#9FC9C4;margin-bottom:3px;">${nearest.label}</div>${rows}`;
+    const wrapperRect = wrapperEl.getBoundingClientRect();
+    tooltip.style.left = (rect.left - wrapperRect.left + px / scaleFactor) + 'px';
+    tooltip.style.top = (rect.top - wrapperRect.top + scaleY(nearest.y) / scaleFactor) + 'px';
+  }
+  function handleLeave(){ hoverLayer.style.display = 'none'; tooltip.style.display = 'none'; }
+  overlay.addEventListener('mousemove', handleMove);
+  overlay.addEventListener('mouseleave', handleLeave);
+  overlay.addEventListener('touchmove', handleMove, {passive:true});
+  overlay.addEventListener('touchend', handleLeave);
+
+  if(rangeEl && ref.points.length){
+    rangeEl.innerText = ref.points[0].label + ' → ' + ref.points[ref.points.length-1].label;
+  }
+}
+
+function renderTrendChart(){
+  const container = document.getElementById('trendChart');
+  const rangeEl = document.getElementById('trendRange');
+  const lang = document.body.getAttribute('data-lang') || 'bn';
+  const metricLabel = currentMetric === 'deaths' ? {bn:'মৃত্যু',en:'Deaths'}[lang] : {bn:'রোগী',en:'Patients'}[lang];
+  const metricColor = currentMetric === 'deaths' ? '#C13E36' : '#0E7C74';
+
+  if(currentGranularity === 'yearly'){
+    const points = aggregateSeries(dghsDailySeries, 'yearly');
+    const series = [{ name: metricLabel, color: metricColor,
+      points: points.map((p,i) => ({ x:i, y:p[currentMetric], label:p.label })) }];
+    renderLinesChart(container, series, rangeEl);
+    return;
+  }
+  const years = Array.from(selectedYears).sort();
+  if(!years.length){ container.innerHTML = '<div class="state-msg">Select at least one year.</div>'; return; }
+  const series = years.map((y,idx) => {
+    const pts = buildYearSeries(y, currentGranularity, lang);
+    return { name: String(y), color: YEAR_COLORS[idx % YEAR_COLORS.length],
+      points: pts.map(p => ({ x: p.period, y: p[currentMetric], label: p.label })) };
+  });
+  renderLinesChart(container, series, rangeEl);
+}
+
+function renderAll(){ renderCards(); renderTrendChart(); }
+
+document.querySelectorAll('#granToggle button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#granToggle button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  currentGranularity = b.dataset.g;
+  document.getElementById('yearFilterBlock').style.display = currentGranularity === 'yearly' ? 'none' : '';
+  renderAll();
+}));
+document.querySelectorAll('#metricToggle button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#metricToggle button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  currentMetric = b.dataset.m;
+  renderAll();
+}));
+
+/* ---------------- LOAD ---------------- */
+async function loadDashboard(){
+  const pulseDot = document.getElementById('pulseDot');
+  try{
+    const res = await fetch(dghsCsvUrl, {cache:"no-store"});
+    if(!res.ok) throw new Error('dghs fetch failed');
+    const { headers, records } = parseCSV(await res.text());
+    if(!records.length) throw new Error('empty dghs sheet');
+
+    const dateCol = findColExact(headers, 'date');
+    const caseCol = findColExact(headers, 'dncc_case');
+    const dncDeathCol = findColExact(headers, 'dncc_death');
+    const affectedCol = findColExact(headers, 'affected');
+    const dhakaCaseCol = findColExact(headers, 'dhaka_case');
+    const dhakaDeathCol = findColExact(headers, 'dhaka_death');
+    const bdDeathCol = headers.find(h => h.trim().toLowerCase() === 'death') || null;
+    if(!dateCol || !caseCol){
+      document.getElementById('cardsGrid').innerHTML = '<div class="state-msg">Could not find date/dncc_case columns in daily_dengue_dghs — check that sheet\u2019s header names.</div>';
+      return;
+    }
+
+    const rows = records.map(r => ({
+      date: r[dateCol],
+      patients: num(r[caseCol]),
+      deaths: dncDeathCol ? num(r[dncDeathCol]) : 0,
+      affected: affectedCol ? num(r[affectedCol]) : 0,
+      dhakaCase: dhakaCaseCol ? num(r[dhakaCaseCol]) : 0,
+      bdDeath: bdDeathCol ? num(r[bdDeathCol]) : 0,
+      dhakaDeath: dhakaDeathCol ? num(r[dhakaDeathCol]) : 0
+    })).filter(r => r.date).sort((a,b) => a.date.localeCompare(b.date));
+
+    const byDate = new Map();
+    rows.forEach(r => {
+      const prior = byDate.get(r.date) || { ...ZERO };
+      byDate.set(r.date, addRec(prior, r));
+    });
+    dghsDailySeries = Array.from(byDate.entries()).map(([date, v]) => ({ date, ...v })).sort((a,b)=>a.date.localeCompare(b.date));
+    lastDate = new Date(dghsDailySeries[dghsDailySeries.length - 1].date);
+    const currentYear = lastDate.getFullYear();
+    selectedYears = new Set([currentYear]);
+    populateYearToggle();
+
+    document.getElementById('asofLine').innerHTML =
+      `<span data-bn>সর্বশেষ হালনাগাদ (${currentYear}):</span><span data-en>Last updated (${currentYear}):</span> ${dghsDailySeries[dghsDailySeries.length-1].date}`;
+
+    renderAll();
+    pulseDot.classList.remove('warn');
+  } catch(err){
+    console.error(err);
+    pulseDot.classList.add('warn');
+    document.getElementById('cardsGrid').innerHTML = '<div class="state-msg">Could not load live data — make sure the sheet is shared as "Anyone with the link can view", then refresh.</div>';
+  }
+}
+document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
+loadDashboard();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const WARDS_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"Ward_no":"52","ward":52.0,"zone":6.0,"ward_bn":"৫২","zone_bn":"৬","area_bn":"বাইলজুড়ী (আংশিক), বাউনিয়া (আংশিক), দলিপাড়া, আহালিয়া, পাকুড়িয়া, বাদালদি, উলুদাহা, চান্দুরা, তাফলিয়া, মান্দুরা, ষোলাহাটি।","area":"Bailjuri (partial), Baunia (partial), Dalipara, Ahalia, Pakuria, Badaldi, Uludaha, Chandura, Taflaia, Mandura, Sholahati.","population":92062.0,"area_sqkm":12.530396924},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.37868,23.86936],[90.38167,23.86894],[90.38566,23.86529],[90.38228,23.86245],[90.38642,23.85748],[90.38586,23.85669],[90.38713,23.85416],[90.39329,23.84609],[90.39347,23.84363],[90.38859,23.84325],[90.38735,23.8416],[90.38521,23.84227],[90.385,23.84453],[90.38359,23.84438],[90.38358,23.84367],[90.37969,23.8443],[90.37823,23.84379],[90.3788,23.84101],[90.37772,23.84071],[90.37815,23.84019],[90.37495,23.84101],[90.3741,23.83928],[90.3694,23.83898],[90.36657,23.84018],[90.36344,23.84509],[90.36033,23.84607],[90.36013,23.84836],[90.35806,23.84887],[90.35532,23.84816],[90.35333,23.84591],[90.35566,23.84308],[90.3504,23.84047],[90.3489,23.83753],[90.34922,23.83356],[90.34739,23.83148],[90.34392,23.82989],[90.34219,23.82733],[90.33752,23.83048],[90.33723,23.83188],[90.33895,23.83425],[90.33833,23.83769],[90.3418,23.84166],[90.33746,23.846],[90.33741,23.84713],[90.3409,23.85364],[90.34745,23.86062],[90.34984,23.85933],[90.35846,23.85798],[90.35942,23.86487],[90.36788,23.86495],[90.37031,23.86587],[90.37452,23.86533],[90.37578,23.86982],[90.37868,23.86936]]]]}},{"type":"Feature","properties":{"Ward_no":"44","ward":44.0,"zone":8.0,"ward_bn":"৪৪","zone_bn":"৮","area_bn":"আমাইয়া, বড়বাড়ী, চামুরখান, কাঁচকুড়া, স্নানঘাটা, ভাটুরিয়া, পলাশিয়া, ছোট পলাশিয়া, পোড়াদিয়া, রাতুটি, ভারারদি, আক্তারটেক, বাওথার, বেতুলী, করিমের বাগ ও দোবাদিয়া।","area":"Amaiya, Barabari, Chamurkhan, Kanchkura, Snanghata, Bhaturia, Palashia, Chhota Palashia, Poradia, Ratuti, Bharardi, Akhtartek, Baothar, Betuli, Karim Bagh and Dobadia.","population":31770.0,"area_sqkm":8.58286379706},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.45996,23.88472],[90.46081,23.88436],[90.46085,23.88154],[90.46507,23.87392],[90.46989,23.87009],[90.47314,23.86469],[90.47137,23.86311],[90.47237,23.85875],[90.46794,23.85638],[90.46572,23.85338],[90.46671,23.85098],[90.46497,23.85029],[90.46427,23.84589],[90.46344,23.84525],[90.46239,23.84682],[90.46062,23.84727],[90.45889,23.84578],[90.45763,23.84596],[90.45616,23.84807],[90.45422,23.84795],[90.45403,23.84926],[90.44825,23.84938],[90.44739,23.85253],[90.44819,23.85401],[90.44629,23.85856],[90.44339,23.86069],[90.44013,23.8608],[90.44006,23.85826],[90.43866,23.85716],[90.43378,23.86394],[90.4372,23.86513],[90.43665,23.86732],[90.44032,23.86729],[90.44061,23.87005],[90.44492,23.86996],[90.44485,23.86761],[90.44554,23.8674],[90.44914,23.86782],[90.44867,23.86937],[90.44635,23.86932],[90.44657,23.8757],[90.44886,23.87595],[90.45012,23.87717],[90.45383,23.87556],[90.45571,23.87586],[90.45754,23.88142],[90.45996,23.88472]]]]}},{"type":"Feature","properties":{"Ward_no":"43","ward":43.0,"zone":9.0,"ward_bn":"৪৩","zone_bn":"৯","area_bn":"তলনা, ঢেলনা, নকুনী, মৈঞ্জারটেক, মস্তুল, পাতিরা, ডুমনি, কাঁঠালদিয়া, বাগদিয়া ও আমদিয়া।","area":"Talna, Dhelna, Nakuni, Moinartek, Mastul, Patira, Dumni, Kanthaldia, Bagdia and Amdia.","population":19281.0,"area_sqkm":13.9918670157},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.46811,23.81146],[90.46897,23.80962],[90.46802,23.80925],[90.46869,23.80769],[90.4682,23.8051],[90.46395,23.80475],[90.46223,23.80668],[90.45843,23.80537],[90.45886,23.80176],[90.44967,23.80071],[90.45092,23.8037],[90.44974,23.8071],[90.44943,23.81306],[90.44817,23.81313],[90.44729,23.81485],[90.4451,23.81604],[90.44174,23.81472],[90.43994,23.81503],[90.43936,23.81759],[90.44758,23.82127],[90.44833,23.82382],[90.44792,23.82821],[90.44958,23.82872],[90.4483,23.82909],[90.44759,23.83069],[90.45581,23.83251],[90.46171,23.8405],[90.46421,23.8457],[90.46497,23.85029],[90.46671,23.85098],[90.46572,23.85338],[90.46794,23.85638],[90.47237,23.85875],[90.47137,23.86311],[90.47314,23.86469],[90.47548,23.86185],[90.47563,23.86009],[90.47455,23.85676],[90.47466,23.85231],[90.47264,23.84632],[90.47285,23.8424],[90.47715,23.83743],[90.47837,23.83424],[90.48223,23.83111],[90.4865,23.83216],[90.48709,23.82697],[90.48832,23.82616],[90.48838,23.82451],[90.48682,23.82306],[90.48655,23.81827],[90.47942,23.81791],[90.47491,23.81411],[90.47342,23.81414],[90.47501,23.81472],[90.47345,23.81586],[90.47066,23.81511],[90.46963,23.8121],[90.46811,23.81146]]]]}},{"type":"Feature","properties":{"Ward_no":"37","ward":37.0,"zone":10.0,"ward_bn":"৩৭","zone_bn":"১০","area_bn":"আফতাবনগর, দাওকান্দি, টেকপাড়া বাড্ডা, সোনা কাটরা, সেকান্দারবাগ, মধ্যবাড্ডা, মোল্লাপাড়া, বেপারীপাড়া, পোস্ট অফিস রোড ও লৌহেরটেক।","area":"Aftabnagar, Daokandi, Tekpara Badda, Sona Katra, Secanderbag, Madhyabadda, Mollapara, Beparipara, Post Office Road and Lauhertek.","population":118250.0,"area_sqkm":6.32552710444},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.44013,23.78209],[90.44123,23.7778],[90.44479,23.77578],[90.448,23.77574],[90.44867,23.77465],[90.45273,23.77479],[90.45475,23.77672],[90.4572,23.77594],[90.45787,23.77753],[90.46197,23.77966],[90.4608,23.77743],[90.46261,23.77586],[90.46234,23.77444],[90.46097,23.77354],[90.46072,23.77157],[90.45964,23.77128],[90.461,23.76953],[90.46062,23.76723],[90.46156,23.76628],[90.46284,23.76654],[90.46323,23.76349],[90.46535,23.76346],[90.46537,23.76229],[90.46281,23.76016],[90.45923,23.76045],[90.45714,23.75965],[90.45483,23.76058],[90.44609,23.76048],[90.44513,23.76216],[90.43292,23.76359],[90.42326,23.76801],[90.42551,23.77228],[90.42564,23.77876],[90.43078,23.77903],[90.43111,23.7805],[90.43198,23.78061],[90.43193,23.78236],[90.43753,23.78288],[90.44013,23.78209]]]]}},{"type":"Feature","properties":{"Ward_no":"38","ward":38.0,"zone":10.0,"ward_bn":"৩৮","zone_bn":"১০","area_bn":"মধ্যপাড়া, মোল্লাপাড়া, মোল্লাপাড়া আদর্শ নগর, উত্তরবাড্ডা পূর্বপাড়া, উত্তরবাড্ডা ময়নারটেক, বাওয়ালীপাড়া, উত্তরবাড্ডা পূর্বপাড়া (আব্দুল্লাহবাগ), উত্তরবাড্ডা মিছরী টোলা, উত্তরবাড্ডা হাজীপাড়া।","area":"Madhyapara, Mollapara, Mollapara Adarsh ​​Nagar, Uttarbadda Purbapara, Uttarbadda Mainartek, Bawalipara, Uttarbadda Purbapara (Abdullahbagh), Uttarbadda Mishri Tola, Uttarbadda Hajipara.","population":109228.0,"area_sqkm":1.38112835344},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.4347,23.79139],[90.43675,23.78663],[90.43987,23.78724],[90.44206,23.78656],[90.44011,23.785],[90.43939,23.78225],[90.43753,23.78288],[90.43193,23.78236],[90.43198,23.78061],[90.43111,23.7805],[90.43078,23.77903],[90.42564,23.77876],[90.42515,23.78904],[90.4347,23.79139]]]]}},{"type":"Feature","properties":{"Ward_no":"39","ward":39.0,"zone":9.0,"ward_bn":"৩৯","zone_bn":"৯","area_bn":"নূরেরচালা পশ্চিম, নূরেরচালা পূর্ব, খিলবাড়িরটেক পশ্চিম ও খিলবাড়িরটেক পূর্ব।","area":"Nurerchala West, Nurerchala East, Khilbarirtek West and Khilbarirtek East.","population":74107.0,"area_sqkm":1.35554370918},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.42887,23.7987],[90.42953,23.79767],[90.43118,23.79755],[90.44264,23.79796],[90.44091,23.79565],[90.44315,23.79198],[90.43593,23.79205],[90.42608,23.78943],[90.42561,23.79463],[90.42436,23.79464],[90.42353,23.79873],[90.42887,23.7987]]]]}},{"type":"Feature","properties":{"Ward_no":"45","ward":45.0,"zone":8.0,"ward_bn":"৪৫","zone_bn":"৮","area_bn":"উত্তরখান (দক্ষিণ অংশ) ও উত্তরখান (উত্তর অংশ)।","area":"Uttarkhan (southern part) and Uttarkhan (northern part).","population":50116.0,"area_sqkm":3.65929576471},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.43198,23.88034],[90.43427,23.87872],[90.4407,23.87922],[90.44134,23.87671],[90.44357,23.87618],[90.44257,23.87447],[90.44435,23.8734],[90.44541,23.87132],[90.44619,23.87152],[90.44635,23.86932],[90.44867,23.86937],[90.44914,23.86782],[90.44554,23.8674],[90.44485,23.86761],[90.44492,23.86996],[90.44061,23.87005],[90.44035,23.86732],[90.43665,23.86732],[90.43601,23.86529],[90.43417,23.86528],[90.43149,23.86782],[90.43007,23.86791],[90.42853,23.86747],[90.42815,23.86513],[90.42159,23.86395],[90.42139,23.8659],[90.4191,23.86759],[90.41995,23.86917],[90.41893,23.87374],[90.41619,23.87421],[90.41694,23.87667],[90.41817,23.87605],[90.41899,23.87878],[90.43198,23.88034]]]]}},{"type":"Feature","properties":{"Ward_no":"50","ward":50.0,"zone":7.0,"ward_bn":"৫০","zone_bn":"৭","area_bn":"মোল্লারটেক, ইরশাল ও আজমপুর।","area":"Mollartek, Irshal and Azampur.","population":118743.0,"area_sqkm":1.51965650718},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.40677,23.87647],[90.40795,23.87461],[90.41206,23.87373],[90.41331,23.86936],[90.4152,23.86958],[90.41339,23.86772],[90.41419,23.86667],[90.41343,23.86367],[90.41482,23.86205],[90.41371,23.86096],[90.41381,23.85944],[90.4121,23.85918],[90.41124,23.85527],[90.40638,23.8562],[90.40597,23.87648],[90.40677,23.87647]]]]}},{"type":"Feature","properties":{"Ward_no":"47","ward":47.0,"zone":7.0,"ward_bn":"৪৭","zone_bn":"৭","area_bn":"ফায়দাবাদ, কোটবাড়ী, মৌশাইর ও চালাবন।","area":"Faydabad, Kotbari, Moushair and Chalaban.","population":94335.0,"area_sqkm":1.97113311525},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.41563,23.88336],[90.41527,23.88129],[90.41789,23.88089],[90.41899,23.87874],[90.41817,23.87605],[90.41698,23.8767],[90.41717,23.87554],[90.41603,23.87479],[90.41639,23.87378],[90.41871,23.8739],[90.41924,23.87314],[90.41859,23.8727],[90.41995,23.86917],[90.4191,23.86759],[90.4214,23.86586],[90.42147,23.86441],[90.42023,23.86429],[90.42121,23.86255],[90.42041,23.86186],[90.41484,23.86196],[90.41343,23.86367],[90.41419,23.86667],[90.41339,23.86772],[90.4152,23.86958],[90.41329,23.86938],[90.41206,23.87373],[90.40795,23.87461],[90.4073,23.87649],[90.40597,23.87648],[90.4065,23.88228],[90.41163,23.88293],[90.41459,23.88507],[90.41563,23.88336]]]]}},{"type":"Feature","properties":{"Ward_no":"54","ward":54.0,"zone":6.0,"ward_bn":"৫৪","zone_bn":"৬","area_bn":"রোশাদিয়া (আংশিক), কামারপাড়া, কালিয়ারটেক, খায়েরটেক, ভাটুলিয়া, নয়ানীচালা, রাজাবাড়ী, ধউর (আংশিক), আশুতিয়া, গ্রাম ভাটুলিয়া।","area":"Rosadia (partial), Kamarpara, Kaliartek, Khayertek, Bhatulia, Nayanichala, Rajabari, Dhour (partial), Ashutia, Gram Bhatulia.","population":69922.0,"area_sqkm":3.59457898064},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.37644,23.89752],[90.37999,23.89961],[90.38543,23.89845],[90.38933,23.89395],[90.38939,23.89316],[90.38758,23.89323],[90.38529,23.89606],[90.38434,23.89581],[90.38365,23.89313],[90.38553,23.89372],[90.38666,23.89307],[90.3864,23.89052],[90.3838,23.89054],[90.38314,23.88928],[90.38369,23.88731],[90.37815,23.88614],[90.37797,23.88527],[90.37452,23.88617],[90.37555,23.88647],[90.37509,23.8875],[90.36903,23.88446],[90.36868,23.88603],[90.36375,23.88618],[90.36271,23.88407],[90.36184,23.88399],[90.36302,23.88246],[90.36203,23.88095],[90.3599,23.88083],[90.35545,23.87797],[90.35307,23.87771],[90.35826,23.88323],[90.35696,23.88914],[90.35969,23.89327],[90.37644,23.89752]]]]}},{"type":"Feature","properties":{"Ward_no":"46","ward":46.0,"zone":8.0,"ward_bn":"৪৬","zone_bn":"৮","area_bn":"বাবুর পাড়া, বড়বাগ, ওজা পাড়া, রাজাবাড়ী, মুন্ডা, পুলার টেক, ভাটুলিয়া, মাউছাইদ, বাদুরী পাড়া, চানপাড়া, ফৌজারবাড়ী, গোবিন্দপুর, খঞ্জুরদিয়া, কমুদ খোলা, মৈনারটেক, নিন্নিরটেক, নোয়াখোলা, সাওরারটেক ও উজানপুর।","area":"Babur Para, Barabagh, Oja Para, Rajabari, Munda, Pular Tek, Bhatulia, Mausaid, Baduri Para, Chanpara, Fauzbari, Gobindapur, Khanjurdia, Kamud Khola, Moinartek, Ninnirtek, Noakhola, Saorartek and Ujanpur.","population":43902.0,"area_sqkm":8.26721976955},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.45447,23.89543],[90.45735,23.89528],[90.45986,23.89201],[90.46018,23.88741],[90.45871,23.88597],[90.4593,23.88429],[90.45571,23.87586],[90.45383,23.87556],[90.45012,23.87717],[90.44886,23.87595],[90.44688,23.87598],[90.44614,23.8715],[90.44541,23.87132],[90.44435,23.8734],[90.4426,23.8744],[90.44357,23.87618],[90.44134,23.87671],[90.4407,23.87922],[90.43427,23.87872],[90.43267,23.87936],[90.43269,23.88034],[90.43034,23.88035],[90.41984,23.8783],[90.41789,23.88089],[90.41527,23.88129],[90.41567,23.8832],[90.41446,23.88545],[90.42165,23.88792],[90.42459,23.89119],[90.43831,23.90054],[90.44624,23.89847],[90.45033,23.89598],[90.45447,23.89543]]]]}},{"type":"Feature","properties":{"Ward_no":"51","ward":51.0,"zone":6.0,"ward_bn":"৫১","zone_bn":"৬","area_bn":"উত্তরা সেক্টর ১১, উত্তরা সেক্টর ১২, উত্তরা সেক্টর ১৩, উত্তরা সেক্টর ১৪, বাইলজুড়ী (আংশিক)।","area":"Uttara Sector 11, Uttara Sector 12, Uttara Sector 13, Uttara Sector 14, Bailjuri (partial).","population":98199.0,"area_sqkm":1.90532945381},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.39195,23.8799],[90.39415,23.87942],[90.39535,23.87583],[90.39341,23.87527],[90.39261,23.86878],[90.39115,23.86859],[90.38932,23.86493],[90.38579,23.86435],[90.38712,23.86249],[90.38574,23.86152],[90.38451,23.86406],[90.38566,23.86529],[90.38167,23.86894],[90.37917,23.86887],[90.37666,23.87017],[90.37844,23.87145],[90.38002,23.87597],[90.39195,23.8799]]]]}},{"type":"Feature","properties":{"Ward_no":"53","ward":53.0,"zone":6.0,"ward_bn":"৫৩","zone_bn":"৬","area_bn":"নলভোগ, নয়ানগর, শুক্রভাঙ্গা, ধরাঙ্গারটেক, পুরানকালিয়া, শেখদিরটেক, দিয়াবাড়ী, তারারটেক, নিমতলীরটেক, চন্ডালভোগ, রানাভোলা (আংশিক), ফুলবাড়িয়া, ধউর (আংশিক), বামনারটেক।","area":"Nalbhog, Nayanagar, Shukrabhanga, Dharangarek, Purankalia, Sheikhdirtek, Diabari, Tarartek, Nimtalirtek, Chandalbhog, Ranabhola (partial), Phulbaria, Dhour (partial), Bamnartek.","population":103317.0,"area_sqkm":7.01233754563},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.38658,23.88779],[90.38657,23.88058],[90.38497,23.88013],[90.38536,23.87791],[90.37971,23.87575],[90.37844,23.87145],[90.37525,23.86889],[90.37452,23.86533],[90.37031,23.86587],[90.36788,23.86495],[90.35942,23.86487],[90.35846,23.85798],[90.34984,23.85933],[90.34745,23.86062],[90.35103,23.86625],[90.3505,23.87702],[90.35545,23.87797],[90.3599,23.88083],[90.36203,23.88095],[90.36302,23.88246],[90.36184,23.88399],[90.36271,23.88407],[90.36375,23.88618],[90.36868,23.88603],[90.36903,23.88446],[90.37509,23.8875],[90.37555,23.88647],[90.37452,23.88617],[90.37797,23.88527],[90.37815,23.88614],[90.38129,23.88621],[90.38204,23.88726],[90.38441,23.88662],[90.38658,23.88779]]]]}},{"type":"Feature","properties":{"Ward_no":"42","ward":42.0,"zone":10.0,"ward_bn":"৪২","zone_bn":"১০","area_bn":"বড় বেরাইদ পূর্বপাড়া, বড় বেরাইদ ভূঁইয়াপাড়া, বড় বেরাইদ ঋষিপাড়া, বড় বেরাইদ আরাদ্দাপাড়া, ছোট বেরাইদ ডগরদিয়া, আশকারটেক, চান্দারটেক, পাঁচদিরটেক, হারারদিয়া, বড় বেরাইদ মোড়লপাড়া (উত্তর), বড় বেরাইদ মোড়লপাড়া (দক্ষিণ), বড় বেরাইদ আগারপাড়া, বড় বেরাইদ চটকিপাড়া, বড় বেরাইদ চিনাদিপাড়া, নিগুর অ্যাপ্লাইদ (ফকিরখালী)","area":"Bara Beraid Purbapara, Bara Beraid Bhuiyanpara, Bara Beraid Rishipara, Bara Beraid Araddapara, Chhota Beraid Dagardia, Ashkartek, Chandartek, Panchdirtek, Harardia, Bara Beraid Moralpara (North), Bara Beraid Moralpara (South), Bara Beraid Agarpara, Bara Beraid Chatkipara, Bara Beraid Chinadipara, Nigur Applied (Fakirkhali)","population":19618.0,"area_sqkm":5.46587826401},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.47979,23.81776],[90.4839,23.8187],[90.48457,23.8179],[90.48872,23.81843],[90.49053,23.81699],[90.48825,23.81554],[90.48617,23.8159],[90.48513,23.8144],[90.48466,23.80937],[90.48539,23.80735],[90.48203,23.79964],[90.48063,23.79125],[90.47114,23.78473],[90.47087,23.78314],[90.47193,23.78161],[90.4677,23.7802],[90.46677,23.78201],[90.46398,23.78242],[90.46344,23.78346],[90.46474,23.79093],[90.46705,23.79516],[90.46572,23.80138],[90.46627,23.80188],[90.46512,23.80189],[90.46383,23.80479],[90.4682,23.8051],[90.46869,23.80769],[90.46802,23.80925],[90.46897,23.80962],[90.46811,23.8115],[90.46963,23.8121],[90.4704,23.81496],[90.47345,23.81586],[90.47501,23.81472],[90.47342,23.81414],[90.47491,23.81411],[90.47979,23.81776]]]]}},{"type":"Feature","properties":{"Ward_no":"02","ward":2.0,"zone":2.0,"ward_bn":"২","zone_bn":"২","area_bn":"মিরপুর সেকশন-১২: ব্লক-এ, ব্লক-বি, ব্লক-সি, ব্লক-ডি, ব্লক-ই, ব্লক-ত, ব্লক-ধ, ব্লক-প (উত্তর কালশী), মিরপুর সেকশন-৯: ব্লক-খ, বুড়ির টেক। কালশী সরকার বাড়ী, ব্লক-প সম্প্রসারিত সাগুপ্তা।","area":"Mirpur Section-12: Block-A, Block-B, Block-C, Block-D, Block-E, Block-T, Block-Dh, Block-P (North Kalshi), Mirpur Section-9: Block-Kh, Burir Tech. Kalshi Sarkar Bari, Block-P Extended Sagupta.","population":212449.0,"area_sqkm":1.74884939093},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.37288,23.83562],[90.37534,23.83521],[90.37537,23.83276],[90.37681,23.83278],[90.37782,23.82207],[90.36479,23.82009],[90.36368,23.82967],[90.36988,23.82961],[90.36992,23.83256],[90.36849,23.83259],[90.36846,23.83361],[90.36958,23.83366],[90.36946,23.83592],[90.37288,23.83562]]]]}},{"type":"Feature","properties":{"Ward_no":"03","ward":3.0,"zone":2.0,"ward_bn":"৩","zone_bn":"২","area_bn":"মিরপুর সেকশন-১০: ব্লক-এ, ব্লক-সি, ব্লক-ডি, মিরপুর সেকশন -১১: ব্লক-সি, রোড/এভিঃ-৫ মদিনা নগর । এভিনিউ -৩।","area":"Mirpur Section-10: Block-A, Block-C, Block-D, Mirpur Section-11: Block-C, Road/Av:-5 Madina Nagar. Avenue-3.","population":103932.0,"area_sqkm":1.06791004969},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.37627,23.81702],[90.37963,23.81272],[90.37715,23.81201],[90.37718,23.81057],[90.37459,23.80632],[90.36835,23.80726],[90.36672,23.81299],[90.37004,23.81348],[90.3691,23.81682],[90.37577,23.81827],[90.37627,23.81702]]]]}},{"type":"Feature","properties":{"Ward_no":"04","ward":4.0,"zone":2.0,"ward_bn":"৪","zone_bn":"২","area_bn":"মিরপুর সেকশন -১৩, মিরপুর সেকশন১৩/এ, ১৩/বি, ১৩/সি, টিনসেড, মিরপুর সেকশন-১৪, বাইশটেকী, মিরপুর সেকশন-১৫।","area":"Mirpur Section-13, Mirpur Section 13/A, 13/B, 13/C, Tinsed, Mirpur Section-14, Baishteki, Mirpur Section-15.","population":94819.0,"area_sqkm":1.45449100465},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.38134,23.81237],[90.38427,23.81224],[90.38473,23.8066],[90.38592,23.80423],[90.38773,23.8045],[90.3887,23.79823],[90.38746,23.79828],[90.38752,23.79725],[90.38051,23.7999],[90.37408,23.80504],[90.37718,23.81057],[90.37715,23.81201],[90.37985,23.81285],[90.38134,23.81237]]]]}},{"type":"Feature","properties":{"Ward_no":"08","ward":8.0,"zone":2.0,"ward_bn":"৮","zone_bn":"২","area_bn":"মিরপুর সেকশন-১, ওয়াপদা কলোণী: ব্লক-এ, ব্লক-বি, ব্লক-সি, ব্লক-ডি, ব্লক-ই, ব্লক-এফ, ব্লক-জি, ব্লক-এইচ, বানিজ্যিক প্লট, স্থানীয় বাড়ী ,গৃহ-খ, গৃহ-গ, আল কামাল হাউজিং, চিড়িয়াখানা আবাসিক এলাকা, নবাবের বাগ, গোড়ান চটবাড়ী, বি.আই.এস.এফ স্টাফ কোয়াটার, কুমীরশাহ মাজার ও বক্স নগর, উত্তর বিশিল, প্রিয়াংকা হাউজিং (মিরপুর সেকশন-১) নিউ সি ব্লক, বোটানিক্যাল গার্ডেন আবাসিক এলাকা। ","area":"Mirpur Section-1, WAPDA Colony: Block-A, Block-B, Block-C, Block-D, Block-E, Block-F, Block-G, Block-H, Commercial Plots, Local Houses, House-B, House-C, Al Kamal Housing, Zoo Residential Area, Nawaber Bagh, Goran Chatbari, B.I.S.F Staff Quarters, Kumirshah Mazar and Box Nagar, Uttar Bishil, Priyanka Housing (Mirpur Section-1) New C Block, Botanical Garden Residential Area.","population":144779.0,"area_sqkm":4.21378591905},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.34536,23.82783],[90.34648,23.82826],[90.34809,23.82736],[90.34852,23.82571],[90.35116,23.82509],[90.35214,23.82335],[90.35122,23.82125],[90.3525,23.82066],[90.35135,23.81698],[90.35265,23.81568],[90.35205,23.81309],[90.35426,23.81274],[90.35366,23.80852],[90.35148,23.80763],[90.35206,23.80493],[90.35575,23.79993],[90.34929,23.79615],[90.34747,23.79598],[90.34593,23.79828],[90.34254,23.7984],[90.3426,23.80398],[90.33932,23.80794],[90.33855,23.81116],[90.3407,23.81829],[90.33733,23.81864],[90.33656,23.81978],[90.33894,23.82334],[90.34252,23.82601],[90.34219,23.82733],[90.34392,23.82989],[90.34599,23.83068],[90.34536,23.82783]]]]}},{"type":"Feature","properties":{"Ward_no":"11","ward":11.0,"zone":4.0,"ward_bn":"১১","zone_bn":"৪","area_bn":"কল্যানপুর, পাইকপাড়া, মধ্য পাইকপাড়া, দারুস সালাম রোড (আংশিক) ।","area":"Kalyanpur, Paikpara, Madhya Paikpara, Darus Salam Road (partial).","population":114555.0,"area_sqkm":1.22931699328},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.35912,23.79138],[90.36201,23.79065],[90.36312,23.79127],[90.363,23.7898],[90.36413,23.79013],[90.36362,23.7885],[90.36465,23.78559],[90.36637,23.78435],[90.36658,23.78304],[90.36545,23.78233],[90.36429,23.77917],[90.36197,23.77722],[90.35761,23.77665],[90.358,23.78175],[90.35713,23.78513],[90.3554,23.78506],[90.35523,23.79075],[90.35912,23.79138]]]]}},{"type":"Feature","properties":{"Ward_no":"12","ward":12.0,"zone":4.0,"ward_bn":"১২","zone_bn":"৪","area_bn":"আহম্মদনগর, (আংশিক),শাহআলীবাগ, দক্ষিণ বিশিল,পাইকপাড়া, টোলারবাগ (উত্তর,মধ্য ও দক্ষিণ)।","area":"Ahmednagar, (partial), Shahalibag, Dakshin Bishil, Paikpara, Tolarbag (North, Central and South).","population":135019.0,"area_sqkm":1.7352670967},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.35835,23.80014],[90.35966,23.80067],[90.35998,23.79837],[90.36175,23.79859],[90.36443,23.7931],[90.36345,23.79306],[90.36362,23.79166],[90.36201,23.79065],[90.35882,23.79155],[90.35523,23.79075],[90.3554,23.78506],[90.35713,23.78513],[90.35793,23.78192],[90.35288,23.7829],[90.35143,23.78199],[90.35041,23.7828],[90.35034,23.78586],[90.34948,23.78685],[90.35093,23.79454],[90.3495,23.79624],[90.35779,23.80122],[90.35835,23.80014]]]]}},{"type":"Feature","properties":{"Ward_no":"13","ward":13.0,"zone":4.0,"ward_bn":"১৩","zone_bn":"৪","area_bn":"বড়বাগ, মনীপুর, পীরেরবাগ, (উত্তর –দক্ষিণ, পশ্চিম ওপূর্ব), শেওড়াপাড়া (পশ্চিম ও মধ্য)","area":"Barabagh, Manipur, Pirerbagh, (North-South, West-East), Sheorapara (West and Central)","population":172832.0,"area_sqkm":1.85347812423},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.36468,23.80556],[90.36573,23.80385],[90.36886,23.80335],[90.3691,23.80223],[90.37109,23.80221],[90.37117,23.80326],[90.37246,23.80085],[90.36985,23.79833],[90.36964,23.79589],[90.37062,23.79485],[90.36846,23.79353],[90.3709,23.78634],[90.37253,23.78633],[90.37165,23.78431],[90.36979,23.78323],[90.36658,23.78304],[90.36637,23.78435],[90.3647,23.78549],[90.36362,23.7885],[90.36413,23.79013],[90.363,23.7898],[90.36275,23.79057],[90.36345,23.79306],[90.36443,23.7931],[90.36378,23.79507],[90.36293,23.79511],[90.36175,23.79859],[90.35998,23.79837],[90.35966,23.80067],[90.35841,23.79998],[90.35753,23.80167],[90.36468,23.80556]]]]}},{"type":"Feature","properties":{"Ward_no":"19","ward":19.0,"zone":3.0,"ward_bn":"১৯","zone_bn":"৩","area_bn":"বনানী, গুলশান ১ ও ২, এবং কড়াইল।","area":"Banani, Gulshan 1 and 2, and Karail.","population":120958.0,"area_sqkm":5.23084452235},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.41614,23.80581],[90.41795,23.8021],[90.41814,23.79691],[90.4207,23.7946],[90.42218,23.79052],[90.41995,23.78301],[90.41977,23.77723],[90.41793,23.77317],[90.41609,23.77166],[90.41275,23.77267],[90.41312,23.77582],[90.41082,23.78131],[90.40981,23.78092],[90.40784,23.78389],[90.40425,23.78635],[90.40243,23.78538],[90.40142,23.78702],[90.399,23.7861],[90.40009,23.79316],[90.39908,23.79309],[90.40074,23.79518],[90.40169,23.80041],[90.40533,23.80009],[90.40532,23.80095],[90.40654,23.80107],[90.40644,23.80511],[90.40883,23.80517],[90.409,23.80423],[90.41206,23.8047],[90.41572,23.80672],[90.41614,23.80581]]]]}},{"type":"Feature","properties":{"Ward_no":"20","ward":20.0,"zone":3.0,"ward_bn":"২০","zone_bn":"৩","area_bn":"মহাখালী, মহাখালী- গুলশান ১ লিংক রোড, জনস্বাস্থ্য ইনস্টিটিউট ও নিকেতন","area":"Mohakhali, Mohakhali-Gulshan 1 Link Road, Public Health Institute and Niketan","population":114416.0,"area_sqkm":1.85217906648},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.40142,23.78702],[90.40243,23.78538],[90.40352,23.78644],[90.40497,23.7861],[90.40811,23.78365],[90.40981,23.78092],[90.41082,23.78131],[90.41312,23.77582],[90.41275,23.77267],[90.397,23.77399],[90.399,23.7861],[90.40142,23.78702]]]]}},{"type":"Feature","properties":{"Ward_no":"22","ward":22.0,"zone":3.0,"ward_bn":"২২","zone_bn":"৩","area_bn":"বনশ্রী, রামপুরা, মহানগর, উলন, বাগিচার টেক, নাছিরের টেক, ওমর আলী লেন, পশ্চিম হাজীপাড়া, বাড্ডা টু গুলশান-১ লিংক রোড, হাতিরঝিল লিংক রোড।","area":"Banasree, Rampura, Mohanagar, Ulan, Bagichar Tech, Nasir Tech, Omar Ali Lane, West Hajipara, Badda to Gulshan-1 Link Road, Hatirjheel Link Road.","population":170943.0,"area_sqkm":1.97931259285},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.41743,23.76936],[90.41962,23.76971],[90.42252,23.76873],[90.43278,23.76364],[90.43235,23.76242],[90.43026,23.76098],[90.42961,23.759],[90.42517,23.75608],[90.4197,23.75916],[90.41795,23.75866],[90.41724,23.7573],[90.41491,23.75782],[90.41495,23.76137],[90.41234,23.76246],[90.41138,23.76469],[90.41656,23.7688],[90.4164,23.77007],[90.41743,23.76936]]]]}},{"type":"Feature","properties":{"Ward_no":"23","ward":23.0,"zone":3.0,"ward_bn":"২৩","zone_bn":"৩","area_bn":"খিলগাঁও ‘বি’ জোন, খিলগাঁও পূর্ব হাজীপাড়া, মালিবাগ চৌধুরী পাড়া (নূর মসজিদের উত্তর মহল্লাসহ), মালিবাগ ও মালিবাগ বাজার রোড, (সবুজবাগ অংশ)","area":"Khilgaon 'B' Zone, Khilgaon East Hajipara, Malibag Chowdhury Para (including North Mahalla of Noor Mosque), Malibag and Malibag Bazar Road, (Sabujbagh Part)","population":69154.0,"area_sqkm":0.866367113867},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.42287,23.75736],[90.42517,23.75608],[90.42504,23.75669],[90.42698,23.75684],[90.42768,23.75493],[90.42788,23.75357],[90.42523,23.75357],[90.42501,23.7507],[90.41806,23.75246],[90.41665,23.75162],[90.41601,23.74931],[90.41282,23.74974],[90.41457,23.75272],[90.41373,23.75281],[90.41491,23.75782],[90.41724,23.7573],[90.41795,23.75866],[90.4197,23.75916],[90.42287,23.75736]]]]}},{"type":"Feature","properties":{"Ward_no":"26","ward":26.0,"zone":5.0,"ward_bn":"২৬","zone_bn":"৫","area_bn":"তেজগাঁও, কারওয়ান বাজার বানিজ্যিক এলাকা, কারওয়ান বাজার লেন, কাজী নজরুল ইসলাম এভিনিউ, গ্রীন রোড, তেজতুরী বাজার পূর্ব, তেজতুরী বাজার পশ্চিম, স্টেশন রোড, তেজকুনীপাড়া (শহীদ বীর উত্তম জিয়াউর রহমান সড়ক, বসুন্ধারা সিটি মার্কেট।","area":"Tejgaon, Karwan Bazar Commercial Area, Karwan Bazar Lane, Kazi Nazrul Islam Avenue, Green Road, Tejturi Bazar East, Tejturi Bazar West, Station Road, Tejkunipara (Shaheed Bir Uttam Ziaur Rahman Road, Basundhara City Market.","population":65163.0,"area_sqkm":1.09955359859},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.39574,23.76614],[90.39394,23.75453],[90.39519,23.75259],[90.39829,23.75159],[90.39627,23.74896],[90.39384,23.74797],[90.39322,23.74976],[90.38704,23.75114],[90.39,23.75796],[90.38878,23.76473],[90.39205,23.76455],[90.39281,23.76571],[90.39574,23.76614]]]]}},{"type":"Feature","properties":{"Ward_no":"27","ward":27.0,"zone":5.0,"ward_bn":"২৭","zone_bn":"৫","area_bn":"ফার্মগেট, রাজাবাজার, ইন্দিরা রোড, তেস্তুরী বাজার চক, তেস্তুরী বাজার চকলেন, সজল স্কয়ার, গ্রীন রোড, বীর উত্তম কে, এম,শফিউল্লাহ সড়ক, মনিপুরী পাড়া, বীর উত্তম শহীদ জিয়াউর রহমান সড়ক।","area":"Farmgate, Rajabazar,  Indira Road, Testuri Bazar Chowk, Testuri Bazar Chowk Lane, Sajal Square, Green Road, Bir Uttam K, M, Shafiullah Road, Manipuri Para, Bir Uttam Shaheed Ziaur Rahman Road.","population":77514.0,"area_sqkm":3.64692294056},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.38171,23.77645],[90.38461,23.76564],[90.38878,23.76473],[90.39,23.75796],[90.38706,23.75133],[90.3844,23.75289],[90.38057,23.75303],[90.38143,23.75588],[90.37955,23.75823],[90.37403,23.75788],[90.37053,23.76395],[90.36697,23.77325],[90.37783,23.77657],[90.38121,23.7771],[90.38171,23.77645]]]]}},{"type":"Feature","properties":{"Ward_no":"28","ward":28.0,"zone":5.0,"ward_bn":"২৮","zone_bn":"৫","area_bn":"শ্যামলী বাগ, পশ্চিম আগারগাঁও, আগারগাঁও প্রশাসনিক এলাকা।","area":"Shyamli Bagh, West Agargaon, Agargaon Administrative Area.","population":64720.0,"area_sqkm":1.46874816821},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.37224,23.78307],[90.37258,23.78248],[90.37868,23.78376],[90.38073,23.77699],[90.36697,23.77325],[90.36201,23.77727],[90.36429,23.77917],[90.36568,23.78265],[90.36979,23.78323],[90.37177,23.78452],[90.37224,23.78307]]]]}},{"type":"Feature","properties":{"Ward_no":"29","ward":29.0,"zone":5.0,"ward_bn":"২৯","zone_bn":"৫","area_bn":"মোঃপুর ব্লক-সি, তাজমহল রোড ব্লক-এফ, শাহজাহান রোড, মেট্রো পলিটন হাউজিং, কো-অপারেটিভ হাউজিং সোসাইটি, মোঃপুর –এফ, জুহুরী মহল্লা।","area":"Mohpur Block-C, Taj Mahal Road Block-F, Shahjahan Road, Metropolitan Housing, Co-operative Housing Society, Mohpur –F, Juhuri Mahalla.","population":57251.0,"area_sqkm":0.652996655631},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.35831,23.7661],[90.35868,23.77],[90.36095,23.77349],[90.36229,23.77396],[90.36446,23.77204],[90.36363,23.77057],[90.36562,23.76425],[90.35876,23.76226],[90.35831,23.7661]]]]}},{"type":"Feature","properties":{"Ward_no":"30","ward":30.0,"zone":5.0,"ward_bn":"৩০","zone_bn":"৫","area_bn":"বায়তুল আমান হাউজিং, পিসিকালচার হাউজিং, নবোদয় হাউজিং, প্রমিন্যান্ট পান্থশালা হাউজিং, তুরাগ হাউাজিং, আক্কাছ হাউজিং, বেরীবাধ ইবনেসিনা হাউজিং, শ্যামলী হাউজিং, একতা হাউজিং, উত্তর আদাবর, মোহাম্মদপুর, ঢাকা হাউজিং, রফিক হাউজিং, মুনসুরাবাদ হাউজিং, সুনিবিড় হাউজিং, আলিফ হাউজিং, মফিজ হাউজিং, মেহেদী বাগ হাউজিং, ইউনিক হাউজিং, আদর্শ ছায়ানীড়, মোহাম্মদপুর হাউজিং, আদাবর ও সেকেরটেক","area":"Baitul Aman Housing, Pisciculture Housing, Navodaya Housing, Prominent Panthasala Housing, Turag Housing, Akkas Housing, Beribadh Ibnesina Housing, Shyamoli Housing, Ekta Housing, Uttar Adabor, Mohammadpur, Dhaka Housing, Rafiq Housing, Munsurabad Housing, Sunibid Housing, Alif Housing, Mofiz Housing, Mehedi Bagh Housing, Unique Housing, Adarsh ​​​​Chayanir, Mohammadpur Housing, Adabor and Sekertek","population":196704.0,"area_sqkm":2.07947384338},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.354,23.77607],[90.36159,23.77749],[90.36552,23.77482],[90.36095,23.77349],[90.35868,23.77],[90.35818,23.7656],[90.35527,23.7651],[90.35504,23.76361],[90.35222,23.76297],[90.35337,23.76223],[90.35234,23.76067],[90.3521,23.76251],[90.34952,23.76219],[90.34837,23.76344],[90.34557,23.76843],[90.34451,23.77277],[90.34913,23.77634],[90.35046,23.77607],[90.3503,23.77815],[90.35125,23.77886],[90.354,23.77607]]]]}},{"type":"Feature","properties":{"Ward_no":"31","ward":31.0,"zone":5.0,"ward_bn":"৩১","zone_bn":"৫","area_bn":"আযম রোড, আসাদ এভিনিউ, রাজিয়া সুলতানা রোড়, তাজমহল রোড, শেরাশাহসুরী রোড, নুরজাহান রোড, জাকির হোসেন রোড, শাহাজাহান রোড, আওরঙ্গজেব রোড ও কাজী নজরুল ইসলাম রোড ব্লক-ই।","area":"Azam Road, Asad Avenue, Razia Sultana Road, Taj Mahal Road, Sherashahsuri Road, Nurjahan Road, Zakir Hossain Road, Shahjahan Road, Aurangzeb Road and Kazi Nazrul Islam Road Block-E.","population":48908.0,"area_sqkm":0.559156009109},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.36677,23.76173],[90.36799,23.75695],[90.36535,23.75646],[90.36498,23.75753],[90.36378,23.75716],[90.36388,23.75497],[90.36058,23.7579],[90.35882,23.76227],[90.36562,23.76425],[90.36677,23.76173]]]]}},{"type":"Feature","properties":{"Ward_no":"32","ward":32.0,"zone":5.0,"ward_bn":"৩২","zone_bn":"৫","area_bn":"লালমাটিয়া ব্লক-এ, লালমাটিয়া ব্লক-বি, লালমাটিয়া ব্লক-সি, লালমাটিয়া ব্লক-ডি, লালমাটিয়া ব্লক-ই, লালামাটিয়া ব্লক -এফ, লালমাটিয়া ব্লক-জি, স্যার সৈয়দ রোড, হুমায়ন রোড, বাবর রোড, ইকবাল রোড, আওরঙ্গজেব রোড, খিলজী রোড, আসাদ এভিনিউ, মোঃপুর কলোনী , মোঃ পুর কো-অপারেটিভ হাউজিং সোসাইটি লিঃ ব্লক-ক, গজনবী রোড, (পিসিকালচার) লালমাটিয়া হাউজিং এস্টেট নিউকলোনী।","area":"Lalmatia Block-A, Lalmatia Block-B, Lalmatia Block-C, Lalmatia Block-D, Lalmatia Block-E, Lalmatia Block -F, Lalmatia Block-G, Sir Syed Road, Humayun Road, Babar Road, Iqbal Road, Aurangzeb Road, Khilji Road, Asad Avenue, Md. Pur Colony, Md. Pur Co-operative Housing Society Ltd. Block-C, Ghaznavi Road, (Pisciculture) Lalmatia Housing Estate New Colony.","population":73057.0,"area_sqkm":1.29317169439},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.36742,23.75226],[90.36742,23.75226],[90.36742,23.75226],[90.36742,23.75226]]],[[[90.36742,23.75226],[90.36388,23.75497],[90.36378,23.75716],[90.36498,23.75753],[90.36535,23.75646],[90.36799,23.75695],[90.36753,23.75825],[90.36817,23.75843],[90.36363,23.77057],[90.3644,23.77221],[90.36369,23.77197],[90.36229,23.77396],[90.36533,23.77496],[90.36697,23.77325],[90.37053,23.76395],[90.37512,23.757],[90.36742,23.75226]]]]}},{"type":"Feature","properties":{"Ward_no":"33","ward":33.0,"zone":5.0,"ward_bn":"৩৩","zone_bn":"৫","area_bn":"মোহাম্মদীয়া হাউজিং লিমিটেড, মোহাম্মদীয়া হাউজিং সোসাইটি, কাদেরাবাদ হাউজিং এস্টেট, কাটাসুর ,বাশবাড়ী, চানমিয়া হাউজিং ও চাঁদ হাউজিং, চাঁদ উদ্যান বছিলা, বছিলা রোড, নবীনগর হাউজিং, ঢাকা উদ্যান, ঢাকা উদ্যান, ঢাকা রিয়েল এস্টট, আলী এন্ড নুর রিয়েল এস্টেট, আরাম মডেল টাউন, বেড়ী বাঁধ,বছিলা মডেল টাউন, চন্দ্রিমা মডেল টাউন, বছিলা সিটি ডেভেলপার্স, সাতমসজিদ গৃহনির্মাণ সম্ববায় সমিতি লিঃ, জাপান গার্ডেন সিটি, বিজ্ঞবিভর হাউজিং, নবোদয় হাউজিং, ব্রাদার্স, ফিউচার টাউন, লতিফ রিয়েল এস্টেট, অনিন্দ হাউজিং, বাঁশ বাড়ী।","area":"Mohammadia Housing Limited, Mohammadia Housing Society, Kaderabad Housing Estate, Katasur, Bashbari, Chanmia Housing and Chand Housing, Chand Udyan Bachila, Bachila Road, Nabinagar Housing, Dhaka Udyan, Dhaka Udyan, Dhaka Real Estate, Ali and Noor Real Estate, Aram Model Town, Beri Bandh, Bachila Model Town, Chandrima Model Town, Bachila City Developers, Satmasjid Griha Nirman Sambhav Samity Ltd., Japan Garden City, Bizhnavibhar Housing, Navodaya Housing, Brothers, Future Town, Latif Real Estate, Anind Housing, Bansh Bari.","population":266092.0,"area_sqkm":5.39781032997},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.34463,23.77242],[90.34557,23.76843],[90.34837,23.76344],[90.34952,23.76219],[90.3521,23.76251],[90.35234,23.76067],[90.35337,23.76223],[90.35222,23.76297],[90.35504,23.76361],[90.3548,23.76478],[90.35831,23.7661],[90.35888,23.76155],[90.36058,23.7579],[90.36494,23.7541],[90.36368,23.75294],[90.35985,23.75268],[90.35801,23.75315],[90.35623,23.75555],[90.35244,23.74719],[90.35091,23.74609],[90.35131,23.7409],[90.3497,23.74109],[90.34336,23.74743],[90.33945,23.7497],[90.33321,23.74911],[90.33088,23.74958],[90.32983,23.75077],[90.33771,23.76022],[90.34049,23.76589],[90.34402,23.76833],[90.34421,23.7701],[90.3425,23.77231],[90.34463,23.77242]]]]}},{"type":"Feature","properties":{"Ward_no":"34","ward":34.0,"zone":5.0,"ward_bn":"৩৪","zone_bn":"৫","area_bn":"পশ্চিম ধানমন্ডি, মাদার কেয়ার হাসপাতাল, সুলতানগঞ্জ, রায়ের বাজার পূর্ব, জাফরাবাদ, মেট্রো হাউজিং।","area":"West Dhanmondi, Mother Care Hospital, Sultanganj, Rayer Bazar East, Jafrabad, Metro Housing.","population":125603.0,"area_sqkm":1.29784730205},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.35706,23.75439],[90.35801,23.75315],[90.36052,23.75261],[90.36368,23.75294],[90.36508,23.75426],[90.36742,23.75226],[90.36648,23.75164],[90.37073,23.74498],[90.36734,23.74504],[90.36685,23.74394],[90.36492,23.74475],[90.36339,23.74289],[90.35963,23.74316],[90.35843,23.74213],[90.35131,23.7409],[90.35091,23.74609],[90.35262,23.74753],[90.35537,23.75456],[90.35668,23.7559],[90.35706,23.75439]]]]}},{"type":"Feature","properties":{"Ward_no":"36","ward":36.0,"zone":3.0,"ward_bn":"৩৬","zone_bn":"৩","area_bn":"মিরেরটেক, মিরবাগ, মধুবাগ, উত্তর নয়াটোলা ২য় ভাগ, পূর্ব নয়াটোলা, দক্ষিণ নয়াটোলা, মগবাজার ওয়ারলেস কলোনী।","area":"Mirertek, Mirbagh, Madhubagh, North Nayatola 2nd Part, East Nayatola, South Nayatola, Moghbazar Wireless Colony.","population":63788.0,"area_sqkm":0.70890906149},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.41467,23.75925],[90.41511,23.7567],[90.41373,23.75281],[90.41457,23.75272],[90.41324,23.75045],[90.41033,23.7508],[90.41027,23.7525],[90.40844,23.75341],[90.40994,23.75579],[90.40964,23.75939],[90.40778,23.76012],[90.41166,23.76448],[90.41234,23.76246],[90.41495,23.76137],[90.41467,23.75925]]]]}},{"type":"Feature","properties":{"Ward_no":"25","ward":25.0,"zone":3.0,"ward_bn":"২৫","zone_bn":"৩","area_bn":"নাখালপাড়া, আরজতপাড়া, সিভিল এভিয়েশন ষ্টাফ কোয়ার্টার।","area":"Nakhalpara, Arjatpara, Civil Aviation Staff Quarters.","population":91506.0,"area_sqkm":1.15904469796},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.39731,23.77564],[90.397,23.77399],[90.39961,23.7736],[90.40068,23.77233],[90.40018,23.76942],[90.39615,23.76775],[90.39576,23.76614],[90.39281,23.76571],[90.39205,23.76455],[90.38859,23.76475],[90.38957,23.77559],[90.3931,23.7761],[90.3977,23.77858],[90.39731,23.77564]]]]}},{"type":"Feature","properties":{"Ward_no":"14","ward":14.0,"zone":4.0,"ward_bn":"১৪","zone_bn":"৪","area_bn":"রোকেয়া স্মরণী, মিরপুর রোড, সেনপাড়া র্পবতা, কাজীপাড়া (পশ্চিম ও র্পূব), শেওড়াপাড়া (পশ্চিম ও র্পূব)।","area":"Rokeya Smrani, Mirpur Road, Senpara Parbata, Kazipara (West and East), Sheorapara (West and East).","population":196198.0,"area_sqkm":1.95762965379},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.37164,23.80707],[90.37479,23.80623],[90.37408,23.80504],[90.37824,23.80186],[90.37934,23.79831],[90.37991,23.79205],[90.37817,23.79272],[90.37841,23.7911],[90.37521,23.78626],[90.3709,23.78634],[90.36975,23.79103],[90.36851,23.79221],[90.36846,23.79353],[90.37062,23.79485],[90.36964,23.79589],[90.36985,23.79833],[90.37246,23.80085],[90.37166,23.80268],[90.37117,23.80326],[90.37109,23.80221],[90.3691,23.80223],[90.36838,23.80371],[90.36573,23.80385],[90.36446,23.80594],[90.36935,23.80744],[90.37164,23.80707]]]]}},{"type":"Feature","properties":{"Ward_no":"01","ward":1.0,"zone":1.0,"ward_bn":"১","zone_bn":"১","area_bn":"উত্তরা সেক্টর ১, উত্তরা সেক্টর ২, উত্তরা সেক্টর ৩, উত্তরা সেক্টর ৪, উত্তরা সেক্টর ৫, উত্তরা সেক্টর ৬, উত্তরা সেক্টর ৭, উত্তরা সেক্টর ৮, উত্তরা সেক্টর ৯, উত্তরা সেক্টর ১০, আব্দুল্লাপুর (আংশিক), পুরাকরৈ (আংশিক), শৈলপুর (আংশিক), ফায়দাবাদ (আংশিক), বাউনিয়া (আংশিক), দক্ষিণ খান (আংশিক), ও রানাভোলা (আংশিক)। ","area":"Uttara Sector 1, Uttara Sector 2, Uttara Sector 3, Uttara Sector 4, Uttara Sector 5, Uttara Sector 6, Uttara Sector 7, Uttara Sector 8, Uttara Sector 9, Uttara Sector 10, Abdullahpur (partial), Purakrai (partial), Shailpur (partial), Faydabad (partial), Baunia (partial), Dakshin Khan (partial), and Ranabhola (partial).","population":119171.0,"area_sqkm":5.26039743237},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.38686,23.89406],[90.38758,23.89323],[90.38909,23.89359],[90.39242,23.88918],[90.39275,23.88337],[90.39393,23.88078],[90.4021,23.88249],[90.40634,23.88209],[90.40668,23.85217],[90.39688,23.86083],[90.39261,23.86135],[90.38642,23.85748],[90.38228,23.86245],[90.38467,23.86414],[90.38574,23.86152],[90.38709,23.86245],[90.38579,23.86435],[90.38994,23.86547],[90.39115,23.86859],[90.39261,23.86878],[90.39341,23.87527],[90.39535,23.87583],[90.39415,23.87942],[90.39148,23.87989],[90.38517,23.87831],[90.38497,23.88013],[90.38657,23.88058],[90.38682,23.88798],[90.38441,23.88662],[90.3832,23.88695],[90.38314,23.88928],[90.3838,23.89054],[90.3864,23.89052],[90.38666,23.89307],[90.38553,23.89372],[90.38365,23.89313],[90.38349,23.89469],[90.38529,23.89606],[90.38686,23.89406]]]]}},{"type":"Feature","properties":{"Ward_no":"40","ward":40.0,"zone":9.0,"ward_bn":"৪০","zone_bn":"৯","area_bn":"ভাটারা (আংশিক), ছোলমাইদ, নয়ানগর উত্তর ও নয়ানগর দক্ষিণ।","area":"Bhatara (partial), Cholmaid, Nayanagar North and Nayanagar South.","population":109730.0,"area_sqkm":4.29846125895},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.44579,23.8152],[90.44943,23.81306],[90.44974,23.8071],[90.45092,23.80365],[90.44929,23.80108],[90.44576,23.8004],[90.44276,23.79765],[90.43118,23.79755],[90.42936,23.79777],[90.42859,23.79915],[90.42353,23.79873],[90.42193,23.80638],[90.4227,23.80738],[90.42549,23.80719],[90.4274,23.80824],[90.43049,23.81158],[90.43578,23.81466],[90.44174,23.81472],[90.44493,23.81604],[90.44579,23.8152]]]]}},{"type":"Feature","properties":{"Ward_no":"49","ward":49.0,"zone":7.0,"ward_bn":"৪৯","zone_bn":"৭","area_bn":"কাওলার, আশকোনা ও গাওয়াইর।","area":"Kawlar, Ashkona and Gawair.","population":107062.0,"area_sqkm":4.32058187702},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.41935,23.83815],[90.4181,23.83764],[90.40668,23.85217],[90.40638,23.8562],[90.41124,23.85527],[90.4121,23.85918],[90.41381,23.85944],[90.41428,23.86209],[90.41995,23.86181],[90.41997,23.85724],[90.42209,23.85678],[90.42161,23.85275],[90.42324,23.85077],[90.42308,23.8494],[90.42638,23.84759],[90.43177,23.84759],[90.43176,23.84478],[90.43487,23.84436],[90.43734,23.84268],[90.43795,23.84087],[90.43742,23.83624],[90.43424,23.83751],[90.43127,23.83668],[90.42592,23.83729],[90.42313,23.83627],[90.41953,23.83739],[90.41935,23.83815]]]]}},{"type":"Feature","properties":{"Ward_no":"05","ward":5.0,"zone":2.0,"ward_bn":"৫","zone_bn":"২","area_bn":"মিরপুর সেকশন-১১: ব্লক-এ, ব্লক-বি, ব্লক-সি, ব্লক-ডি, ব্লক-ই, ব্লক-এফ, পলাশনগর ।  ","area":"Mirpur Section-11: Block-A, Block-B, Block-C, Block-D, Block-E, Block-F, Palashnagar.","population":133323.0,"area_sqkm":1.43960265405},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.37963,23.81272],[90.37578,23.81827],[90.3691,23.81682],[90.37004,23.81348],[90.36672,23.81299],[90.36479,23.82009],[90.37782,23.82207],[90.37763,23.82395],[90.3816,23.82404],[90.384,23.82032],[90.38428,23.81228],[90.37963,23.81272]]]]}},{"type":"Feature","properties":{"Ward_no":"06","ward":6.0,"zone":2.0,"ward_bn":"৬","zone_bn":"২","area_bn":"পল্লবী, বর্ধিত পল্লবী, নতুন পল্লবী মিরপুর সেকশন-৭, মিল্কভিটা রোড, সুজাতনগর, হরুনাবাদ, মল্লিকা হাউজিং আরামবাগ, আরিফাবাদ, ছায়ানীড়, মিরপুর সেকশন-৬: ব্লক-সি, ব্লক-ডি, ব্লক-ই, ব্লক-ট, ব্লক-ঝ, আলু্ব্দী, দুয়ারীপাড়া, ৬-জ, রূপনগর টিনশেড ও ইষ্টান হাউজিং এর  দ্বিতীয় পর্ব  এলাকা ।","area":"Pallavi, Extended Pallavi, New Pallavi Mirpur Section-7, Milkvita Road, Sujatnagar, Harunabad, Mallika Housing Arambagh, Arifabad, Chhayanir, Mirpur Section-6: Block-C, Block-D, Block-E, Block-T, Block-J, Alubdi, Duaripara, 6-J, Rupnagar Tinshed and Easton Housing Phase II Area.","population":227707.0,"area_sqkm":3.50038105189},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.35035,23.82534],[90.34852,23.82571],[90.34809,23.82736],[90.34513,23.82847],[90.34599,23.83068],[90.34922,23.83356],[90.3489,23.83753],[90.3504,23.84047],[90.35559,23.84267],[90.35519,23.8313],[90.36049,23.83178],[90.36055,23.83078],[90.36363,23.83043],[90.36424,23.82224],[90.36748,23.81032],[90.36082,23.81],[90.35873,23.8134],[90.35886,23.81484],[90.3579,23.81489],[90.3566,23.81986],[90.35446,23.82031],[90.35185,23.81842],[90.3525,23.82066],[90.3512,23.8214],[90.35214,23.82335],[90.35035,23.82534]]]]}},{"type":"Feature","properties":{"Ward_no":"07","ward":7.0,"zone":2.0,"ward_bn":"৭","zone_bn":"২","area_bn":"মিরপুর সেকশন-২: ব্লক-এ, ব্লক-বি, ব্লক-সি, ব্লক-ডি, ব্লক-ই, ব্লক-এফ, ব্লক-জি,(১), ব্লক-এইচ, ব্লক-কে, ব্লক-জে, রূপরগর আবাসিক এলাকা, মিরপুর সেকশন -৭ ব্লক-এ, মিরপুর সেকশন-২, ব্লক-চ, ফ্ল্যাট ৫টি বিল্ডিং, দূয়ারীপাড়া: ৬-এ, ৬-বি, ৬-ট, ৬-জ।","area":"Mirpur Section-2: Block-A, Block-B, Block-C, Block-D, Block-E, Block-F, Block-G,(1), Block-H, Block-K, Block-J, Rupnagar Residential Area, Mirpur Section-7 Block-A, Mirpur Section-2, Block-F, Flat 5 Building, Duaripara: 6-A, 6-B, 6-T, 6-J.","population":130001.0,"area_sqkm":1.73307951127},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.35496,23.82035],[90.3566,23.81986],[90.3579,23.81489],[90.35886,23.81484],[90.35873,23.8134],[90.36082,23.81],[90.36748,23.81032],[90.36835,23.80726],[90.36446,23.80594],[90.35577,23.79991],[90.35206,23.80493],[90.35148,23.80763],[90.35366,23.80852],[90.35426,23.81274],[90.35205,23.81309],[90.35265,23.81568],[90.35153,23.81644],[90.3515,23.81803],[90.35496,23.82035]]]]}},{"type":"Feature","properties":{"Ward_no":"09","ward":9.0,"zone":4.0,"ward_bn":"৯","zone_bn":"৪","area_bn":"গোলারটেক, ছোট দয়িাবাড়ী, বড় দয়িাবাড়ী, জহুরাবাদ, আনন্দনগর, কোটবাড়ী, চারআনী পাড়া, বারআনীপাড়া, বাগবাড়ী, হরিরামপূর, কড় বাজার, জাহানাবাদ, ঋশিপাড়া, র্বধন বাড়ী, গাবতলী বাস টার্মিনাল, গাবতলী গরুর হাট, সুইপার কলোনী, গাবতলী (আমিন বাজার) পাইকারী কাঁচা বাজার।","area":"Golartek, Chhota Dayabari, Baro Dayabari, Zahurabad, Anandnagar, Kotbari, Charani Para, Barani Para, Bagbari, Harirampur, Kar Bazar, Jahanabad, Rishipara, Bardhan Bari, Gabtoli Bus Terminal, Gabtoli Cow Market, Sweeper Colony, Gabtoli (Amin Bazar) Wholesale Raw Market.","population":76226.0,"area_sqkm":2.05243100884},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.34297,23.79834],[90.34328,23.79419],[90.34465,23.79409],[90.34462,23.79261],[90.3464,23.79271],[90.34677,23.79156],[90.34486,23.79132],[90.34418,23.79031],[90.34315,23.78565],[90.34539,23.78375],[90.3455,23.78179],[90.34692,23.78165],[90.34652,23.7788],[90.34913,23.77634],[90.34443,23.77235],[90.34268,23.77229],[90.33447,23.77492],[90.33817,23.77901],[90.33565,23.78306],[90.33575,23.78416],[90.33864,23.78634],[90.33855,23.78879],[90.33993,23.79098],[90.34039,23.79615],[90.33964,23.79773],[90.34297,23.79834]]]]}},{"type":"Feature","properties":{"Ward_no":"10","ward":10.0,"zone":4.0,"ward_bn":"১০","zone_bn":"৪","area_bn":"মাজার রোড, মিরপুর রোড (আংশিক), ১ম কলোনী ২য় কলোনী, ৩য় কলোনী, দারুস সালাম এলাকা, গৈদারটেক, লালকুঠী, বাতেন নগর আবাসিক এলাকা।","area":"Mazar Road, Mirpur Road (partial), 1st Colony 2nd Colony, 3rd Colony, Darus Salam Area, Gaidartek, Lalkuthi, Baten Nagar Residential Area.","population":92694.0,"area_sqkm":1.71491189373},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.34334,23.7983],[90.34634,23.7981],[90.34747,23.79598],[90.3495,23.79624],[90.35087,23.79479],[90.3494,23.78792],[90.35041,23.7828],[90.35163,23.78194],[90.35288,23.7829],[90.35793,23.78192],[90.35761,23.77665],[90.35391,23.77607],[90.35125,23.77886],[90.34974,23.77595],[90.34673,23.77836],[90.34692,23.78165],[90.3455,23.78179],[90.34539,23.78375],[90.34315,23.78565],[90.34418,23.79031],[90.34486,23.79132],[90.34677,23.79156],[90.3464,23.79271],[90.34462,23.79261],[90.34465,23.79409],[90.34328,23.79419],[90.34334,23.7983]]]]}},{"type":"Feature","properties":{"Ward_no":"15","ward":15.0,"zone":2.0,"ward_bn":"১৫","zone_bn":"২","area_bn":"মানিকদী, মাটিকাটা, বালুঘাট, লালারসই, ধামালকোর্ট, আলুব্দীরটেক, বাইগারটেক, বারনটেক, ভাষানটেক।","area":"Manikdi, Matikata, Balughat, Lalarsoi, Dhamalcourt, Alubdirtek, Baigartek, Barontek, Bhashantek.","population":222115.0,"area_sqkm":5.00847151446},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.38511,23.84396],[90.38521,23.84227],[90.38732,23.84174],[90.38719,23.83696],[90.38879,23.83464],[90.38893,23.83217],[90.39324,23.82743],[90.3955,23.82848],[90.39612,23.82647],[90.39413,23.82565],[90.39464,23.82493],[90.39377,23.82476],[90.39372,23.82261],[90.39802,23.81694],[90.39509,23.81617],[90.39464,23.81485],[90.39721,23.80888],[90.39605,23.8081],[90.3947,23.81162],[90.39342,23.81195],[90.38773,23.8045],[90.38592,23.80423],[90.38461,23.80694],[90.38344,23.82193],[90.3816,23.82404],[90.37763,23.82395],[90.37681,23.83278],[90.37537,23.83276],[90.37534,23.83521],[90.37674,23.83586],[90.37678,23.84049],[90.37815,23.84019],[90.37772,23.84071],[90.3788,23.84101],[90.37823,23.84379],[90.38511,23.84396]]]]}},{"type":"Feature","properties":{"Ward_no":"16","ward":16.0,"zone":4.0,"ward_bn":"১৬","zone_bn":"৪","area_bn":"কাফরুল, উত্তর কাফরুল, দক্ষিণ কাফরুল, পশ্চিম কাফরুল (তালতলা), ইব্রাহিমপুর, কচুক্ষেত রোড । ","area":"Kafrul, North Kafrul, South Kafrul, West Kafrul (Taltola), Ibrahimpur, Kachukhet Road.","population":143896.0,"area_sqkm":1.34218608854},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.37695,23.78861],[90.37868,23.78376],[90.37258,23.78248],[90.37176,23.78452],[90.37253,23.78627],[90.37539,23.78631],[90.37695,23.78861]]],[[[90.38051,23.7999],[90.38767,23.79678],[90.3887,23.78783],[90.38809,23.78652],[90.38617,23.78608],[90.38532,23.78306],[90.3845,23.78302],[90.38343,23.78533],[90.38221,23.79119],[90.37936,23.79071],[90.37893,23.79201],[90.37991,23.79205],[90.37989,23.79309],[90.37868,23.80097],[90.38051,23.7999]]]]}},{"type":"Feature","properties":{"Ward_no":"17","ward":17.0,"zone":1.0,"ward_bn":"১৭","zone_bn":"১","area_bn":"খিলক্ষেত, কুড়িল, কুড়াতলী, জোয়ারসাহারা, অলিপাড়া (আংশিক), জগন্নাথপুর, , নিকুঞ্জ-১ ও ২, ও টানপাড়া।","area":"Khilkhet, Kuril, Kuratoli, Joarsahara, Alipara (partial), Jagannathpur, , Nikunja-1 and 2, and Tanpara.","population":281887.0,"area_sqkm":8.41397073853},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.41935,23.83815],[90.41953,23.83739],[90.42404,23.8362],[90.42592,23.83729],[90.43127,23.83668],[90.43576,23.83734],[90.43582,23.83659],[90.43941,23.8351],[90.43944,23.83341],[90.44377,23.83194],[90.44399,23.83063],[90.44759,23.83069],[90.4483,23.82909],[90.44958,23.82872],[90.44792,23.82821],[90.44833,23.82382],[90.44758,23.82127],[90.4406,23.81846],[90.44065,23.8177],[90.43936,23.81759],[90.43994,23.81503],[90.43559,23.81459],[90.42549,23.80719],[90.42192,23.80793],[90.42026,23.81073],[90.4208,23.81206],[90.41859,23.81238],[90.41577,23.81141],[90.41533,23.81587],[90.41813,23.81608],[90.4179,23.81776],[90.41662,23.81825],[90.41746,23.8202],[90.41545,23.82333],[90.41344,23.82336],[90.41255,23.82587],[90.41316,23.83354],[90.41415,23.83514],[90.41935,23.83815]]]]}},{"type":"Feature","properties":{"Ward_no":"18","ward":18.0,"zone":3.0,"ward_bn":"১৮","zone_bn":"৩","area_bn":"বারিধারা আবাসিক এলাকা ব্লক- আই, কে এবং জে কালাচাঁদপুর, নর্দ্দা, শাহাজাদপুর (ক, খ ও গ) ।","area":"Baridhara Residential Area Block-I, K and J Kalachandpur, Nardda, Shahzadpur (A, B and C).","population":62916.0,"area_sqkm":1.43018943198},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.41936,23.81191],[90.42086,23.81201],[90.42037,23.81043],[90.42271,23.80745],[90.42193,23.80638],[90.42436,23.79464],[90.42561,23.79463],[90.42608,23.78943],[90.42316,23.788],[90.42163,23.78867],[90.42158,23.79316],[90.41814,23.79691],[90.41775,23.80258],[90.41542,23.80745],[90.41345,23.8091],[90.41464,23.81165],[90.41936,23.81191]]]]}},{"type":"Feature","properties":{"Ward_no":"21","ward":21.0,"zone":3.0,"ward_bn":"২১","zone_bn":"৩","area_bn":"উত্তর বাড্ডা, দক্ষিণ বাড্ডা, মধ্য বাড্ডা, পূর্ব মেরুল বাড্ডা, পশ্চিম মেরুল বাড্ডা এবং গুপিপাড়া বাড্ডা।","area":"North Badda, South Badda, Middle Badda, East Merul Badda, West Merul Badda and Gupipara Badda.","population":88933.0,"area_sqkm":1.37383766969},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.42531,23.78814],[90.42594,23.77561],[90.4253,23.77167],[90.42326,23.76801],[90.42055,23.76958],[90.41721,23.76943],[90.41609,23.77166],[90.41793,23.77317],[90.41977,23.77723],[90.41995,23.78301],[90.42176,23.78866],[90.42316,23.788],[90.42515,23.78904],[90.42531,23.78814]]]]}},{"type":"Feature","properties":{"Ward_no":"24","ward":24.0,"zone":3.0,"ward_bn":"২৪","zone_bn":"৩","area_bn":"তেজগাঁওশিল্পএলাকা, বেগুনবাড়ী, কুনিপাড়া।","area":"Tejgaon Industrial Area, Begunbari, Kunipara.","population":70043.0,"area_sqkm":3.15333486861},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.39409,23.75629],[90.39615,23.76775],[90.39921,23.76841],[90.39908,23.76945],[90.40018,23.76942],[90.40096,23.77144],[90.39961,23.7736],[90.41331,23.77217],[90.41461,23.77273],[90.41609,23.77166],[90.41656,23.7688],[90.41138,23.76469],[90.40227,23.75366],[90.39843,23.75156],[90.396,23.75206],[90.39394,23.75453],[90.39409,23.75629]]]]}},{"type":"Feature","properties":{"Ward_no":"35","ward":35.0,"zone":3.0,"ward_bn":"৩৫","zone_bn":"৩","area_bn":"বড়মগবাজার, দিলুরোড, নিউ ইস্কাটন রোড, পশ্চিম মগবাজার, মধ্য পেয়ারাবাগ, গ্রীনওয়ে, উত্তর নয়াটোলা ১ম ভাগ।","area":"Baramogbazar, Dilu Road, New Eskaton Road, West Moghbazar, Middle Peyarabagh, Greenway, North Nayatola 1st Part.","population":79497.0,"area_sqkm":1.1972503463},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.40964,23.75939],[90.40994,23.75579],[90.40844,23.75341],[90.41027,23.7525],[90.41033,23.7508],[90.41324,23.75045],[90.41277,23.74964],[90.41123,23.7499],[90.41106,23.74839],[90.40946,23.74811],[90.40536,23.74926],[90.39453,23.74575],[90.39384,23.74798],[90.40227,23.75366],[90.40778,23.76012],[90.40964,23.75939]]]]}},{"type":"Feature","properties":{"Ward_no":"41","ward":41.0,"zone":10.0,"ward_bn":"৪১","zone_bn":"১০","area_bn":"সাতারকুল, পুকুরপাড়া, দক্ষিণপাড়া, তালতলা, উত্তরপাড়া পশ্চিমাংশ, উত্তরপাড়া পূর্বাংশ, পাঁচখোলা, মেরুলখোলা, মগারদিয়া, পূর্ব পদরদিয়া, পশ্চিম পদরদিয়া।","area":"Satarkul, Pukurpara, Dakshinpara, Taltala, Uttarpara West, Uttarpara East, Panchkhola, Merulkhola, Mogardia, East Padardia, West Padardia.","population":38498.0,"area_sqkm":6.27135883194},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.46197,23.77966],[90.45787,23.77753],[90.4572,23.77594],[90.45475,23.77672],[90.45273,23.77479],[90.44867,23.77465],[90.448,23.77574],[90.44479,23.77578],[90.44123,23.7778],[90.43954,23.78306],[90.44171,23.78715],[90.43675,23.78663],[90.43469,23.79154],[90.44315,23.79198],[90.44091,23.79565],[90.4456,23.80031],[90.45886,23.80176],[90.45843,23.80537],[90.46231,23.80666],[90.46385,23.80524],[90.46512,23.80189],[90.46627,23.80188],[90.46572,23.80138],[90.46705,23.79516],[90.46504,23.79186],[90.46421,23.78598],[90.46349,23.78575],[90.46375,23.78308],[90.46192,23.78123],[90.46256,23.78067],[90.46197,23.77966]]]]}},{"type":"Feature","properties":{"Ward_no":"48","ward":48.0,"zone":7.0,"ward_bn":"৪৮","zone_bn":"৭","area_bn":"দক্ষিণখান, সোনার খোলা, হলান, আনল, বরুয়া ও জামুন।","area":"Dakshinkhan, Sonar Khola, Holan, Anal, Barua and Jamun.","population":89952.0,"area_sqkm":9.02432277337},"geometry":{"type":"MultiPolygon","coordinates":[[[[90.45561,23.83247],[90.44399,23.83063],[90.44377,23.83194],[90.4417,23.83321],[90.43944,23.83341],[90.43941,23.8351],[90.43736,23.83705],[90.43801,23.84038],[90.43731,23.84271],[90.43487,23.84436],[90.43176,23.84478],[90.43177,23.84759],[90.42638,23.84759],[90.42308,23.8494],[90.42324,23.85077],[90.42161,23.85275],[90.42209,23.85678],[90.41997,23.85724],[90.41995,23.86181],[90.4212,23.86212],[90.42031,23.86459],[90.4217,23.86388],[90.42815,23.86513],[90.42853,23.86747],[90.43007,23.86791],[90.43149,23.86782],[90.43424,23.86525],[90.43745,23.86647],[90.4372,23.86513],[90.43391,23.86372],[90.43901,23.85701],[90.44006,23.85826],[90.44013,23.8608],[90.44339,23.86069],[90.44629,23.85856],[90.44819,23.85401],[90.44739,23.85253],[90.44825,23.84938],[90.45403,23.84926],[90.45422,23.84795],[90.45616,23.84807],[90.45776,23.84592],[90.45895,23.84581],[90.46031,23.84721],[90.46239,23.84682],[90.46344,23.84525],[90.46178,23.8406],[90.45561,23.83247]]]]}}]};
+</script>
+<script>
 
-  </body>
+/* ================= Ward risk map + ranking table ================= */
+const RISK_SHEET = {
+  bn: { id: '1zEaxK5CyBCa_TxmFYjjcnsAQ3bxxrecfMGiKJ7gqXAU', tab: 'zone_ward_patient_death_larv_mosq_risk' },
+  en: { id: '1EdVgB-WUZIFtjMznhnriTPZ5_HfMQkYQPZI84bR2M8A', tab: 'zone_ward_patient_death_larv_mosq_risk' }
+};
+/* Same column layout in both sheets (English sheet just drops the _bn suffix) */
+const RCOL = {
+  DATE:'A', YEAR:'B', WEEK:'D', ZONE:'G', WARD:'H', WARDFC:'I', AREA:'J', POP_DEN:'L',
+  TOTAL_PATIENT:'M', TOTAL_DEATH:'N', MOSQ:'P', BI:'Q', CI:'R', HI:'S',
+  ROLL_PATIENT:'T', ROLL_DEATH:'U', ROLL_MOSQ:'V', ROLL_BI:'W', ROLL_CI:'X', ROLL_HI:'Y',
+  COMPOSITE:'AG', RISK_CAT:'AP', SUMMARY:'AQ'
+};
+const RISK_STYLE = {
+  'বেশি':  { key:'high', color:'#C13E36' }, 'High':    { key:'high', color:'#C13E36' },
+  'মাঝারি':{ key:'med',  color:'#D9A412' }, 'Moderate':{ key:'med',  color:'#D9A412' },
+  'কম':    { key:'low',  color:'#2E8E5B' }, 'Low':     { key:'low',  color:'#2E8E5B' }
+};
+const NODATA_STYLE = { key:'nodata', color:'#C7CFCD' };
+const RISK_LABELS = {
+  high:  { bn:'বেশি',      en:'High' },
+  med:   { bn:'মাঝারি',    en:'Moderate' },
+  low:   { bn:'কম',        en:'Low' },
+  nodata:{ bn:'তথ্য নেই',  en:'No data' }
+};
+
+let riskMap = null, riskGeoLayer = null, riskWardData = {};
+let selectedRiskDate = null;
+
+function gvizUrl(sheetId, tab, query){
+  const params = new URLSearchParams({ sheet: tab, tq: query });
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${params.toString()}`;
+}
+async function runRiskQuery(sheetId, tab, query){
+  const res = await fetch(gvizUrl(sheetId, tab, query));
+  if(!res.ok) throw new Error('network '+res.status);
+  const text = await res.text();
+  const m = text.match(/setResponse\(([\s\S]*)\);?\s*$/);
+  if(!m) throw new Error('unexpected response');
+  const json = JSON.parse(m[1]);
+  if(json.status === 'error'){
+    const msg = (json.errors && json.errors[0] && json.errors[0].detailed_message) || 'query error';
+    throw new Error(msg);
+  }
+  return json.table;
+}
+function rGvizDateToISO(v){
+  if(v == null) return null;
+  if(typeof v === 'string'){
+    const m = v.match(/^Date\((\d+),(\d+),(\d+)\)/);
+    if(m){ const y=+m[1], mo=+m[2]+1, d=+m[3]; return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+    if(/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+  }
+  return null;
+}
+function rRowsFromTable(table){ return table.rows.map(r => r.c.map(c => c ? c.v : null)); }
+function fmtVal(v){
+  if(v === null || v === undefined || v === '' || v === 'NA') return '—';
+  if(typeof v === 'number') return Number.isInteger(v) ? v.toLocaleString() : v.toFixed(2);
+  return String(v);
+}
+
+async function fetchDateBounds(lang){
+  const src = RISK_SHEET[lang] || RISK_SHEET.bn;
+  const t = await runRiskQuery(src.id, src.tab, `select min(${RCOL.DATE}), max(${RCOL.DATE})`);
+  const row = rRowsFromTable(t)[0];
+  return { min: rGvizDateToISO(row[0]), max: rGvizDateToISO(row[1]) };
+}
+
+async function fetchRiskSnapshot(lang, isoDate){
+  const src = RISK_SHEET[lang] || RISK_SHEET.bn;
+  const q2 = `select ${RCOL.WARD}, ${RCOL.YEAR}, ${RCOL.WEEK}, ${RCOL.POP_DEN}, ${RCOL.TOTAL_PATIENT}, ${RCOL.TOTAL_DEATH}, ${RCOL.MOSQ}, ${RCOL.BI}, ${RCOL.CI}, ${RCOL.HI}, ${RCOL.ROLL_PATIENT}, ${RCOL.ROLL_DEATH}, ${RCOL.ROLL_MOSQ}, ${RCOL.ROLL_BI}, ${RCOL.ROLL_CI}, ${RCOL.ROLL_HI}, ${RCOL.COMPOSITE}, ${RCOL.RISK_CAT}, ${RCOL.SUMMARY} where ${RCOL.DATE} = date '${isoDate}'`;
+  const t2 = await runRiskQuery(src.id, src.tab, q2);
+  const rows2 = rRowsFromTable(t2);
+  if(!rows2.length) throw new Error('no data for that date');
+  const year = rows2[0][1], week = rows2[0][2];
+
+  const q3 = `select ${RCOL.WARD}, sum(${RCOL.TOTAL_PATIENT}), sum(${RCOL.TOTAL_DEATH}) where ${RCOL.YEAR} = ${year} and ${RCOL.WEEK} = ${week} group by ${RCOL.WARD}`;
+  const t3 = await runRiskQuery(src.id, src.tab, q3);
+  const weekMap = {};
+  rRowsFromTable(t3).forEach(r => { weekMap[String(r[0])] = { patient: r[1]||0, death: r[2]||0 }; });
+
+  const out = {};
+  rows2.forEach(r => {
+    const ward = String(r[0]);
+    const wk = weekMap[ward] || { patient:0, death:0 };
+    out[ward] = {
+      popDen: r[3], todayPatient: r[4]||0, todayDeath: r[5]||0,
+      mosq: r[6], bi: r[7], ci: r[8], hi: r[9],
+      roll3Patient: r[10]||0, roll3Death: r[11]||0,
+      rollMosq: r[12], rollBi: r[13], rollCi: r[14], rollHi: r[15],
+      composite: r[16], risk: (r[17]||'').trim(), summary: r[18]||'',
+      weekPatient: wk.patient, weekDeath: wk.death
+    };
+  });
+  return out;
+}
+
+async function fetchRanking(lang, isoDate){
+  const src = RISK_SHEET[lang] || RISK_SHEET.bn;
+  const q = `select ${RCOL.ZONE}, ${RCOL.WARD}, ${RCOL.WARDFC}, ${RCOL.AREA}, ${RCOL.COMPOSITE}, ${RCOL.RISK_CAT} where ${RCOL.DATE} = date '${isoDate}' order by ${RCOL.COMPOSITE} desc`;
+  const t = await runRiskQuery(src.id, src.tab, q);
+  return rRowsFromTable(t).map(r => ({ zone:r[0], ward:r[1], wardfc:r[2], area:r[3], composite:r[4], risk:(r[5]||'').trim() }));
+}
+
+/* ===== Map rendering ===== */
+function riskStyleForWard(wardNo){
+  const d = riskWardData[wardNo];
+  const st = d ? (RISK_STYLE[d.risk] || NODATA_STYLE) : NODATA_STYLE;
+  return { fillColor: st.color, color: st.color, weight: 1.3, fillOpacity: 0.72 };
+}
+
+function riskPopupHtml(wardNo, props){
+  const d = riskWardData[wardNo];
+  const lang = document.body.getAttribute('data-lang') || 'bn';
+  const st = d ? (RISK_STYLE[d.risk] || NODATA_STYLE) : NODATA_STYLE;
+  const riskLabel = RISK_LABELS[st.key][lang];
+  const wardLabel = lang === 'en' ? 'Ward' : 'ওয়ার্ড নং';
+  const L = lang === 'en'
+    ? { dri:'Dengue Risk Index', patients:'Patients', deaths:'Deaths', today:'Today', week:'This week', roll3:'Last 3 weeks',
+        mosq:'Mosquito indices', biL:'BI (last week)', ciL:'CI (last week)', hiL:'HI (last week)',
+        bi3:'BI (3-wk avg)', ci3:'CI (3-wk avg)', hi3:'HI (3-wk avg)',
+        mosqL:'Adult mosquito, per trap (last week)', mosq3:'Adult mosquito, per trap (3-wk avg)',
+        popden:'Population density (per sq.km)', nodata:'No data available for this ward.' }
+    : { dri:'ডেঙ্গু ঝুঁকি সূচক', patients:'রোগী', deaths:'মৃত্যু', today:'আজ', week:'এই সপ্তাহে', roll3:'গত ৩ সপ্তাহে',
+        mosq:'মশা সূচক', biL:'BI (গত সপ্তাহ)', ciL:'CI (গত সপ্তাহ)', hiL:'HI (গত সপ্তাহ)',
+        bi3:'BI (৩ সপ্তাহের গড়)', ci3:'CI (৩ সপ্তাহের গড়)', hi3:'HI (৩ সপ্তাহের গড়)',
+        mosqL:'প্রাপ্তবয়স্ক মশা, প্রতি ট্র্যাপ (গত সপ্তাহ)', mosq3:'প্রাপ্তবয়স্ক মশা, প্রতি ট্র্যাপ (৩ সপ্তাহের গড়)',
+        popden:'জনসংখ্যার ঘনত্ব (প্রতি বর্গকিমি)', nodata:'এই ওয়ার্ডের জন্য তথ্য পাওয়া যায়নি।' };
+  if(!d){
+    return `<div class="ward-popup"><h4>${wardLabel} ${props.Ward_no || wardNo}</h4><div class="summary">${L.nodata}</div></div>`;
+  }
+  return `
+    <div class="ward-popup">
+      <h4>${wardLabel} ${props.Ward_no || wardNo}</h4>
+      <div class="section-label">${L.dri}</div>
+      <span class="badge" style="background:${st.color}">${riskLabel}</span>
+      <div class="summary">${d.summary}</div>
+      <div class="section-label">${L.patients}</div>
+      <table>
+        <tr><td class="k">${L.today}</td><td class="v">${fmtVal(d.todayPatient)}</td></tr>
+        <tr><td class="k">${L.week}</td><td class="v">${fmtVal(d.weekPatient)}</td></tr>
+        <tr><td class="k">${L.roll3}</td><td class="v">${fmtVal(d.roll3Patient)}</td></tr>
+      </table>
+      <div class="section-label">${L.deaths}</div>
+      <table>
+        <tr><td class="k">${L.today}</td><td class="v">${fmtVal(d.todayDeath)}</td></tr>
+        <tr><td class="k">${L.week}</td><td class="v">${fmtVal(d.weekDeath)}</td></tr>
+        <tr><td class="k">${L.roll3}</td><td class="v">${fmtVal(d.roll3Death)}</td></tr>
+      </table>
+      <div class="section-label">${L.mosq}</div>
+      <table>
+        <tr><td class="k">${L.biL}</td><td class="v">${fmtVal(d.bi)}</td></tr>
+        <tr><td class="k">${L.ciL}</td><td class="v">${fmtVal(d.ci)}</td></tr>
+        <tr><td class="k">${L.hiL}</td><td class="v">${fmtVal(d.hi)}</td></tr>
+        <tr><td class="k">${L.bi3}</td><td class="v">${fmtVal(d.rollBi)}</td></tr>
+        <tr><td class="k">${L.ci3}</td><td class="v">${fmtVal(d.rollCi)}</td></tr>
+        <tr><td class="k">${L.hi3}</td><td class="v">${fmtVal(d.rollHi)}</td></tr>
+        <tr><td class="k">${L.mosqL}</td><td class="v">${fmtVal(d.mosq)}</td></tr>
+        <tr><td class="k">${L.mosq3}</td><td class="v">${fmtVal(d.rollMosq)}</td></tr>
+      </table>
+      <div class="section-label">${L.popden}</div>
+      <table><tr><td class="k">${L.popden}</td><td class="v">${fmtVal(d.popDen)}</td></tr></table>
+    </div>`;
+}
+
+function initRiskMap(){
+  riskMap = L.map('riskMap', { scrollWheelZoom: true }).setView([23.815, 90.40], 11.3);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+  }).addTo(riskMap);
+
+  riskGeoLayer = L.geoJSON(WARDS_GEOJSON, {
+    style: f => riskStyleForWard(String(f.properties.ward || f.properties.Ward_no)),
+    onEachFeature: (feature, layer) => {
+      const wardNo = String(feature.properties.ward || feature.properties.Ward_no);
+      layer.bindTooltip(`Ward ${feature.properties.Ward_no}`, { className:'ward-tip', sticky:true });
+      layer.bindPopup(() => riskPopupHtml(wardNo, feature.properties), { maxWidth: 300, maxHeight: 380 });
+      layer.on('mouseover', () => layer.setStyle({ weight: 2.6 }));
+      layer.on('mouseout', () => layer.setStyle({ weight: 1.3 }));
+    }
+  }).addTo(riskMap);
+  riskMap.fitBounds(riskGeoLayer.getBounds(), { padding: [10,10] });
+}
+
+function refreshRiskStyles(){
+  if(!riskGeoLayer) return;
+  riskGeoLayer.eachLayer(layer => {
+    const wardNo = String(layer.feature.properties.ward || layer.feature.properties.Ward_no);
+    layer.setStyle(riskStyleForWard(wardNo));
+    if(layer.isPopupOpen && layer.isPopupOpen()) layer.closePopup();
+  });
+}
+
+/* ===== Ranking table ===== */
+function renderRankTable(rows, lang){
+  const table = document.getElementById('rankTable');
+  const headers = lang === 'en'
+    ? ['Rank','Ward','Zone','Area','Risk Index']
+    : ['র‍্যাংক','ওয়ার্ড','অঞ্চল','এলাকা','ঝুঁকি সূচক'];
+  const thead = `<thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;
+  const body = rows.map((r,i) => {
+    const st = RISK_STYLE[r.risk] || NODATA_STYLE;
+    const label = RISK_LABELS[st.key][lang];
+    return `<tr>
+      <td class="rank-cell">${i+1}</td>
+      <td class="ward-cell">${r.wardfc || r.ward}</td>
+      <td>${r.zone != null ? r.zone : '—'}</td>
+      <td>${r.area || '—'}</td>
+      <td class="badge-cell"><span style="background:${st.color}">${label}</span></td>
+    </tr>`;
+  }).join('');
+  table.innerHTML = thead + `<tbody>${body}</tbody>`;
+}
+
+/* ===== Load pipeline ===== */
+async function loadRiskMap(lang){
+  const loading = document.getElementById('mapLoading');
+  loading.style.display = 'flex';
+  try{
+    if(!selectedRiskDate){
+      const bounds = await fetchDateBounds(lang);
+      selectedRiskDate = bounds.max;
+      const input = document.getElementById('riskDateFilter');
+      input.min = bounds.min; input.max = bounds.max; input.value = bounds.max;
+    }
+    const [snapshot, ranking] = await Promise.all([
+      fetchRiskSnapshot(lang, selectedRiskDate),
+      fetchRanking(lang, selectedRiskDate)
+    ]);
+    riskWardData = snapshot;
+    const label = lang === 'en' ? 'Showing data for:' : 'তথ্য দেখানো হচ্ছে:';
+    document.getElementById('mapUpdated').textContent = `${label} ${selectedRiskDate}`;
+    refreshRiskStyles();
+    renderRankTable(ranking, lang);
+  } catch(err){
+    console.error(err);
+    const msg = lang === 'en'
+      ? 'Could not load live risk data — make sure the risk sheet is shared as "Anyone with the link can view".'
+      : 'লাইভ ঝুঁকি তথ্য আনতে সমস্যা হয়েছে — শিটটি "লিংক থাকা যে কেউ দেখতে পারবে" আকারে শেয়ার করা আছে কিনা যাচাই করুন।';
+    document.getElementById('mapUpdated').textContent = msg;
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+function onLangChangeForMap(lang){
+  loadRiskMap(lang);
+}
+
+document.getElementById('riskDateFilter').addEventListener('change', (e) => {
+  if(!e.target.value) return;
+  selectedRiskDate = e.target.value;
+  loadRiskMap(document.body.getAttribute('data-lang') || 'bn');
+});
+
+initRiskMap();
+loadRiskMap(document.body.getAttribute('data-lang') || 'bn');
+
+</script>
+</body>
 </html>
-
-
-
-
-
-
-
