@@ -111,11 +111,17 @@
 
   .date-input{font-family:var(--font-mono);font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--panel);color:var(--ink);}
   .map-rank-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:stretch;}
+  .map-rank-grid > *{min-width:0;}
   @media(max-width:860px){.map-rank-grid{grid-template-columns:1fr;}}
   .rank-card{padding:0;overflow:hidden;display:flex;flex-direction:column;height:100%;}
   .rank-card-head{padding:18px 20px 12px;flex-shrink:0;border-bottom:1px solid var(--line);}
   #rankTableWrap{flex:1 1 auto;overflow-y:auto;overflow-x:auto;}
-  .rank-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .rank-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
+  .rank-table td, .rank-table th{overflow-wrap:break-word;}
+  .rank-table th:nth-child(1),.rank-table td:nth-child(1){width:44px;}
+  .rank-table th:nth-child(2),.rank-table td:nth-child(2){width:70px;}
+  .rank-table th:nth-child(3),.rank-table td:nth-child(3){width:56px;}
+  .rank-table th:nth-child(5),.rank-table td:nth-child(5){width:96px;}
   .rank-table thead th{position:sticky;top:0;z-index:2;}
   .rank-table th{text-align:left;font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:10px 16px;border-bottom:1px solid var(--line);background:var(--paper);white-space:nowrap;}
   .rank-table td{padding:10px 16px;border-bottom:1px solid var(--line);vertical-align:top;}
@@ -828,12 +834,12 @@ function riskPopupHtml(wardNo, props){
         mosq:'Mosquito indices', biL:'BI (last week)', ciL:'CI (last week)', hiL:'HI (last week)',
         bi3:'BI (3-wk avg)', ci3:'CI (3-wk avg)', hi3:'HI (3-wk avg)',
         mosqL:'Adult mosquito, per trap (last week)', mosq3:'Adult mosquito, per trap (3-wk avg)',
-        popden:'Population density (per sq.km)', nodata:'No data available for this ward.' }
+        popden:'Population density (per sq.km)', indexVal:'Index value', nodata:'No data available for this ward.' }
     : { dri:'ডেঙ্গু ঝুঁকি সূচক', patients:'রোগী', deaths:'মৃত্যু', today:'আজ', week:'এই সপ্তাহে', roll3:'গত ৩ সপ্তাহে',
         mosq:'মশা সূচক', biL:'BI (গত সপ্তাহ)', ciL:'CI (গত সপ্তাহ)', hiL:'HI (গত সপ্তাহ)',
         bi3:'BI (৩ সপ্তাহের গড়)', ci3:'CI (৩ সপ্তাহের গড়)', hi3:'HI (৩ সপ্তাহের গড়)',
         mosqL:'প্রাপ্তবয়স্ক মশা, প্রতি ট্র্যাপ (গত সপ্তাহ)', mosq3:'প্রাপ্তবয়স্ক মশা, প্রতি ট্র্যাপ (৩ সপ্তাহের গড়)',
-        popden:'জনসংখ্যার ঘনত্ব (প্রতি বর্গকিমি)', nodata:'এই ওয়ার্ডের জন্য তথ্য পাওয়া যায়নি।' };
+        popden:'জনসংখ্যার ঘনত্ব (প্রতি বর্গকিমি)', indexVal:'সূচক মান', nodata:'এই ওয়ার্ডের জন্য তথ্য পাওয়া যায়নি।' };
   if(!d){
     return `<div class="ward-popup"><h4>${wardLabel} ${props.Ward_no || wardNo}</h4><div class="summary">${L.nodata}</div></div>`;
   }
@@ -842,6 +848,9 @@ function riskPopupHtml(wardNo, props){
       <h4>${wardLabel} ${props.Ward_no || wardNo}</h4>
       <div class="section-label">${L.dri}</div>
       <span class="badge" style="background:${st.color}">${riskLabel}</span>
+      <table style="margin-bottom:6px;">
+        <tr><td class="k">${L.indexVal}</td><td class="v">${fmtVal(d.composite)}</td></tr>
+      </table>
       <div class="summary">${d.summary}</div>
       <div class="section-label">${L.patients}</div>
       <table>
@@ -888,6 +897,19 @@ function initRiskMap(){
     }
   }).addTo(riskMap);
   riskMap.fitBounds(riskGeoLayer.getBounds(), { padding: [10,10] });
+
+  /* The map sits inside a CSS grid column whose width is finalized by the
+     browser after Leaflet's first paint, which can leave tiles misaligned
+     or the map visually squashed. Force Leaflet to recompute its size once
+     the grid/layout has settled, and keep it correct on later resizes. */
+  const fixSize = () => { if(riskMap){ riskMap.invalidateSize(); riskMap.fitBounds(riskGeoLayer.getBounds(), { padding:[10,10] }); } };
+  setTimeout(fixSize, 60);
+  setTimeout(fixSize, 400);
+  window.addEventListener('load', fixSize);
+  window.addEventListener('resize', () => riskMap && riskMap.invalidateSize());
+  if(window.ResizeObserver){
+    new ResizeObserver(() => riskMap && riskMap.invalidateSize()).observe(document.getElementById('riskMap'));
+  }
 }
 
 function refreshRiskStyles(){
@@ -966,4 +988,4 @@ loadRiskMap(document.body.getAttribute('data-lang') || 'bn');
 
 </script>
 </body>
-</html>
+</html>4
