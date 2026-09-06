@@ -102,6 +102,8 @@
   .map-spinner{width:18px;height:18px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:mapspin .8s linear infinite;}
   @keyframes mapspin{to{transform:rotate(360deg);}}
   .leaflet-tooltip.ward-tip{background:var(--ink);color:#fff;border:none;border-radius:7px;font-family:var(--font-body);font-size:12px;padding:4px 9px;}
+  .leaflet-tooltip.ward-number-label{background:transparent;border:none;box-shadow:none;color:#111;font-weight:700;font-size:11px;font-family:var(--font-mono);padding:0;text-shadow:0 0 3px rgba(255,255,255,.9),0 0 3px rgba(255,255,255,.9);}
+  .leaflet-tooltip.ward-number-label::before{display:none;}
   .ward-popup{font-family:var(--font-body);min-width:220px;max-width:270px;}
   .ward-popup h4{font-family:var(--font-display);margin:0 0 4px;font-size:16px;font-weight:600;}
   .ward-popup .badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;color:#fff;margin-bottom:8px;font-family:var(--font-mono);letter-spacing:.02em;}
@@ -885,20 +887,35 @@ function riskPopupHtml(wardNo, props){
     </div>`;
 }
 
+const BN_DIGITS = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+function toBanglaDigits(n){
+  return String(n).split('').map(ch => (ch >= '0' && ch <= '9') ? BN_DIGITS[+ch] : ch).join('');
+}
+function wardLabelText(rawWardNo, lang){
+  return lang === 'en' ? String(rawWardNo) : toBanglaDigits(rawWardNo);
+}
+function updateWardLabels(lang){
+  if(!riskGeoLayer) return;
+  riskGeoLayer.eachLayer(layer => {
+    const raw = layer.feature.properties.Ward_no;
+    if(layer.setTooltipContent) layer.setTooltipContent(wardLabelText(raw, lang));
+  });
+}
+
 function initRiskMap(){
   riskMap = L.map('riskMap', { scrollWheelZoom: true }).setView([23.815, 90.40], 11.3);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri', maxZoom: 16
-  }).addTo(riskMap);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 16, opacity: 0.85
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
   }).addTo(riskMap);
 
+  const initialLang = document.body.getAttribute('data-lang') || 'bn';
   riskGeoLayer = L.geoJSON(WARDS_GEOJSON, {
     style: f => riskStyleForWard(String(f.properties.ward || f.properties.Ward_no)),
     onEachFeature: (feature, layer) => {
       const wardNo = String(feature.properties.ward || feature.properties.Ward_no);
-      layer.bindTooltip(`Ward ${feature.properties.Ward_no}`, { className:'ward-tip', sticky:true });
+      layer.bindTooltip(wardLabelText(feature.properties.Ward_no, initialLang), {
+        permanent: true, direction: 'center', className: 'ward-number-label', interactive: false
+      });
       layer.bindPopup(() => riskPopupHtml(wardNo, feature.properties), { maxWidth: 300, maxHeight: 380 });
       layer.on('mouseover', () => layer.setStyle({ weight: 2.4, color: '#111111' }));
       layer.on('mouseout', () => layer.setStyle({ weight: 1, color: '#333333' }));
@@ -998,6 +1015,7 @@ async function loadRiskMap(lang){
 }
 
 function onLangChangeForMap(lang){
+  updateWardLabels(lang);
   loadRiskMap(lang);
 }
 
