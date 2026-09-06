@@ -115,16 +115,16 @@
   @media(max-width:860px){.map-rank-grid{grid-template-columns:1fr;}}
   .rank-card{padding:0;overflow:hidden;display:flex;flex-direction:column;height:100%;}
   .rank-card-head{padding:18px 20px 12px;flex-shrink:0;border-bottom:1px solid var(--line);}
-  #rankTableWrap{flex:1 1 auto;overflow-y:auto;overflow-x:auto;}
+  #rankTableWrap{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:auto;}
   .rank-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
   .rank-table td, .rank-table th{overflow-wrap:break-word;}
-  .rank-table th:nth-child(1),.rank-table td:nth-child(1){width:44px;}
-  .rank-table th:nth-child(2),.rank-table td:nth-child(2){width:70px;}
-  .rank-table th:nth-child(3),.rank-table td:nth-child(3){width:56px;}
-  .rank-table th:nth-child(5),.rank-table td:nth-child(5){width:96px;}
+  .rank-table th:nth-child(1),.rank-table td:nth-child(1){width:48px;}
+  .rank-table th:nth-child(2),.rank-table td:nth-child(2){width:82px;}
+  .rank-table th:nth-child(3),.rank-table td:nth-child(3){width:62px;}
+  .rank-table th:nth-child(5),.rank-table td:nth-child(5){width:104px;}
   .rank-table thead th{position:sticky;top:0;z-index:2;}
-  .rank-table th{text-align:left;font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:10px 16px;border-bottom:1px solid var(--line);background:var(--paper);white-space:nowrap;}
-  .rank-table td{padding:10px 16px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .rank-table th{text-align:left;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:9px 14px;border-bottom:1px solid var(--line);background:var(--paper);white-space:normal;}
+  .rank-table td{padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;font-size:12.5px;}
   .rank-table tr:nth-child(even) td{background:#FAFCFB;}
   .rank-table td.rank-cell{font-family:var(--font-display);font-weight:700;font-size:15px;}
   .rank-table td.ward-cell{font-weight:600;white-space:nowrap;}
@@ -988,4 +988,4 @@ loadRiskMap(document.body.getAttribute('data-lang') || 'bn');
 
 </script>
 </body>
-</html>4
+</html>
