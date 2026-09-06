@@ -18,6 +18,9 @@
     --risk-high-bg:#F8E2E0;
     --risk-med:#D9A412;
     --risk-low:#2E8E5B;
+    --map-risk-high:#ff0000;
+    --map-risk-med:#ffff00;
+    --map-risk-low:#55ff7f;
     --nodata:#C7CFCD;
     --line:#D7DED8;
     --muted:#5B6E68;
@@ -230,9 +233,9 @@
         <div id="riskMap"></div>
         <div class="map-loading" id="mapLoading"><span class="map-spinner"></span><span data-bn>লাইভ ঝুঁকি তথ্য আনা হচ্ছে…</span><span data-en>Loading live risk data…</span></div>
         <div class="map-legend">
-          <span><i class="legend-dot" style="background:var(--risk-high)"></i><span data-bn>বেশি ঝুঁকি</span><span data-en>High risk</span></span>
-          <span><i class="legend-dot" style="background:var(--risk-med)"></i><span data-bn>মাঝারি ঝুঁকি</span><span data-en>Moderate risk</span></span>
-          <span><i class="legend-dot" style="background:var(--risk-low)"></i><span data-bn>কম ঝুঁকি</span><span data-en>Low risk</span></span>
+          <span><i class="legend-dot" style="background:var(--map-risk-high)"></i><span data-bn>বেশি ঝুঁকি</span><span data-en>High risk</span></span>
+          <span><i class="legend-dot" style="background:var(--map-risk-med)"></i><span data-bn>মাঝারি ঝুঁকি</span><span data-en>Moderate risk</span></span>
+          <span><i class="legend-dot" style="background:var(--map-risk-low)"></i><span data-bn>কম ঝুঁকি</span><span data-en>Low risk</span></span>
           <span><i class="legend-dot" style="background:var(--nodata)"></i><span data-bn>তথ্য নেই</span><span data-en>No data</span></span>
         </div>
       </div>
@@ -727,9 +730,9 @@ const RCOL = {
   COMPOSITE:'AG', RISK_CAT:'AP', SUMMARY:'AQ'
 };
 const RISK_STYLE = {
-  'বেশি':  { key:'high', color:'#C13E36' }, 'High':    { key:'high', color:'#C13E36' },
-  'মাঝারি':{ key:'med',  color:'#D9A412' }, 'Moderate':{ key:'med',  color:'#D9A412' },
-  'কম':    { key:'low',  color:'#2E8E5B' }, 'Low':     { key:'low',  color:'#2E8E5B' }
+  'বেশি':  { key:'high', color:'#ff0000' }, 'High':    { key:'high', color:'#ff0000' },
+  'মাঝারি':{ key:'med',  color:'#ffff00' }, 'Moderate':{ key:'med',  color:'#ffff00' },
+  'কম':    { key:'low',  color:'#55ff7f' }, 'Low':     { key:'low',  color:'#55ff7f' }
 };
 const NODATA_STYLE = { key:'nodata', color:'#C7CFCD' };
 const RISK_LABELS = {
@@ -834,8 +837,8 @@ function riskPopupHtml(wardNo, props){
   const L = lang === 'en'
     ? { dri:'Dengue Risk Index', patients:'Patients', deaths:'Deaths', today:'Today', week:'This week', roll3:'Last 3 weeks',
         mosq:'Mosquito indices', biL:'BI (last week)', ciL:'CI (last week)', hiL:'HI (last week)',
-        bi3:'BI (3-wk avg)', ci3:'CI (3-wk avg)', hi3:'HI (3-wk avg)',
-        mosqL:'Adult mosquito, per trap (last week)', mosq3:'Adult mosquito, per trap (3-wk avg)',
+        bi3:'BI (last 3-wk avg)', ci3:'CI (last 3-wk avg)', hi3:'HI (last 3-wk avg)',
+        mosqL:'Adult mosquito, per trap (last week)', mosq3:'Adult mosquito, per trap (last 3-wk avg)',
         popden:'Population density (per sq.km)', indexVal:'Index value', nodata:'No data available for this ward.' }
     : { dri:'ডেঙ্গু ঝুঁকি সূচক', patients:'রোগী', deaths:'মৃত্যু', today:'আজ', week:'এই সপ্তাহে', roll3:'গত ৩ সপ্তাহে',
         mosq:'মশা সূচক', biL:'BI (গত সপ্তাহে)', ciL:'CI (গত সপ্তাহে)', hiL:'HI (গত সপ্তাহে)',
@@ -898,20 +901,29 @@ function initRiskMap(){
       layer.on('mouseout', () => layer.setStyle({ weight: 1.3 }));
     }
   }).addTo(riskMap);
-  riskMap.fitBounds(riskGeoLayer.getBounds(), { padding: [2,2] });
 
-  /* The map sits inside a CSS grid column whose width is finalized by the
-     browser after Leaflet's first paint, which can leave tiles misaligned
-     or the map visually squashed. Force Leaflet to recompute its size once
-     the grid/layout has settled, and keep it correct on later resizes. */
-  const fixSize = () => { if(riskMap){ riskMap.invalidateSize(); riskMap.fitBounds(riskGeoLayer.getBounds(), { padding:[2,2] }); } };
-  setTimeout(fixSize, 60);
-  setTimeout(fixSize, 400);
-  window.addEventListener('load', fixSize);
-  window.addEventListener('resize', () => riskMap && riskMap.invalidateSize());
+  /* Fitting the map to the ward boundary depends on the container already
+     having its final CSS-grid/flex size, which isn't guaranteed at the
+     moment this script runs (webfonts, external stylesheets, and grid
+     layout can all still be settling). Rather than guess a delay, fit
+     repeatedly from several independent "layout is now settled" signals;
+     fitBounds is idempotent so extra calls are harmless. */
+  fitToWards();
+  requestAnimationFrame(() => requestAnimationFrame(fitToWards));
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitToWards);
+  window.addEventListener('load', fitToWards);
+  window.addEventListener('resize', fitToWards);
+  setTimeout(fitToWards, 800);
+  setTimeout(fitToWards, 2000);
   if(window.ResizeObserver){
-    new ResizeObserver(() => riskMap && riskMap.invalidateSize()).observe(document.getElementById('riskMap'));
+    new ResizeObserver(fitToWards).observe(document.getElementById('riskMap'));
   }
+}
+
+function fitToWards(){
+  if(!riskMap || !riskGeoLayer) return;
+  riskMap.invalidateSize();
+  riskMap.fitBounds(riskGeoLayer.getBounds(), { padding: [4,4] });
 }
 
 function refreshRiskStyles(){
