@@ -128,9 +128,10 @@
   #rankTableWrap{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:auto;}
   .rank-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
   .rank-table td, .rank-table th{overflow-wrap:break-word;}
-  .rank-table th:nth-child(1),.rank-table td:nth-child(1){width:48px;}
+  .rank-table th:nth-child(1),.rank-table td:nth-child(1){width:64px;}
   .rank-table th:nth-child(2),.rank-table td:nth-child(2){width:82px;}
   .rank-table th:nth-child(3),.rank-table td:nth-child(3){width:62px;}
+  .rank-table td:nth-child(3){font-weight:700;text-align:center;}
   .rank-table th:nth-child(5),.rank-table td:nth-child(5){width:104px;}
 
   .section-title{font-family:var(--font-display);font-weight:600;font-size:20px;text-align:center;margin:0 0 16px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;}
@@ -295,8 +296,8 @@
         </ul>
         <p class="prevention-contact"><span data-bn>📞 সহায়তা বা রিপোর্ট করার জন্য যোগাযোগ করুন:</span><span data-en>📞 Contact for help or to report:</span></p>
         <p class="prevention-numbers">
-          <b>DNCC <span data-bn>কন্ট্রোল রুম</span><span data-en>Control Room</span></b> — ০১৭১৬০৬৩৪২৫, ০১৭৭৩৯৩৯২৭৬, ০১৭১৫২৩৮৭৫৪,<br>
-          <b><span data-bn>হটলাইন</span><span data-en>Hotline</span> ১৬১০৬</b>
+          <b>DNCC <span data-bn>কন্ট্রোল রুম</span><span data-en>Control Room</span></b> — <span data-bn>০১৭১৬০৬৩৪২৫, ০১৭৭৩৯৩৯২৭৬, ০১৭১৫২৩৮৭৫৪,</span><span data-en>01716063425, 01773939276, 01715238754,</span><br>
+          <b><span data-bn>হটলাইন ১৬১০৬</span><span data-en>Hotline 16106</span></b>
         </p>
       </div>
 
@@ -315,8 +316,8 @@
         <p><span data-bn>মশার প্রজনন স্থল দেখলে দ্রুত DNCC-কে জানান।</span><span data-en>If you spot a mosquito breeding site, report it to DNCC right away.</span></p>
         <p class="prevention-contact"><span data-bn>📞 সহায়তা বা রিপোর্ট করার জন্য যোগাযোগ করুন:</span><span data-en>📞 Contact for help or to report:</span></p>
         <p class="prevention-numbers">
-          <b>DNCC <span data-bn>কন্ট্রোল রুম</span><span data-en>Control Room</span></b> — ০১৭১৬০৬৩৪২৫, ০১৭৭৩৯৩৯২৭৬, ০১৭১৫২৩৮৭৫৪,<br>
-          <b><span data-bn>হটলাইন</span><span data-en>Hotline</span> ১৬১০৬</b>
+          <b>DNCC <span data-bn>কন্ট্রোল রুম</span><span data-en>Control Room</span></b> — <span data-bn>০১৭১৬০৬৩৪২৫, ০১৭৭৩৯৩৯২৭৬, ০১৭১৫২৩৮৭৫৪,</span><span data-en>01716063425, 01773939276, 01715238754,</span><br>
+          <b><span data-bn>হটলাইন ১৬১০৬</span><span data-en>Hotline 16106</span></b>
         </p>
       </div>
 
@@ -333,8 +334,8 @@
         </ul>
         <p class="prevention-contact"><span data-bn>📞 সহায়তা বা রিপোর্ট করার জন্য যোগাযোগ করুন:</span><span data-en>📞 Contact for help or to report:</span></p>
         <p class="prevention-numbers">
-          <b>DNCC <span data-bn>কন্ট্রোল রুম</span><span data-en>Control Room</span></b> — ০১৭১৬০৬৩৪২৫, ০১৭৭৩৯৩৯২৭৬, ০১৭১৫২৩৮৭৫৪,<br>
-          <b><span data-bn>হটলাইন</span><span data-en>Hotline</span> ১৬১০৬</b>
+          <b>DNCC <span data-bn>কন্ট্রোল রুম</span><span data-en>Control Room</span></b> — <span data-bn>০১৭১৬০৬৩৪২৫, ০১৭৭৩৯৩৯২৭৬, ০১৭১৫২৩৮৭৫৪,</span><span data-en>01716063425, 01773939276, 01715238754,</span><br>
+          <b><span data-bn>হটলাইন ১৬১০৬</span><span data-en>Hotline 16106</span></b>
         </p>
       </div>
     </div>
@@ -1078,12 +1079,18 @@ function refreshRiskStyles(){
 const RISK_ROW_BG = { high:'#ffd6d6', med:'#fff3a3', low:'#c8f7d4', nodata:'#efefef' };
 const RISK_TEXT_ON_BADGE = { high:'#ffffff', med:'#3a3000', low:'#0d3d1f', nodata:'#4a4a4a' };
 
-function renderRankTable(rows, lang){
+function renderRankTableHeader(lang){
   const table = document.getElementById('rankTable');
   const headers = lang === 'en'
     ? ['Rank','Ward','Zone','Area','Risk Index']
     : ['র‍্যাংক','ওয়ার্ড','অঞ্চল','এলাকা','ঝুঁকি সূচক'];
   const thead = `<thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;
+  const existingBody = table.querySelector('tbody');
+  table.innerHTML = thead + (existingBody ? existingBody.outerHTML : '<tbody></tbody>');
+}
+
+function renderRankTable(rows, lang){
+  const table = document.getElementById('rankTable');
   const body = rows.map((r,i) => {
     const st = RISK_STYLE[r.risk] || NODATA_STYLE;
     const label = RISK_LABELS[st.key][lang];
@@ -1097,11 +1104,13 @@ function renderRankTable(rows, lang){
       <td class="badge-cell"><span style="background:${st.color};color:${textColor};">${label}</span></td>
     </tr>`;
   }).join('');
-  table.innerHTML = thead + `<tbody>${body}</tbody>`;
+  renderRankTableHeader(lang);
+  table.querySelector('tbody').innerHTML = body;
 }
 
 /* ===== Load pipeline ===== */
 async function loadRiskMap(lang){
+  renderRankTableHeader(lang);
   const loading = document.getElementById('mapLoading');
   loading.style.display = 'flex';
   try{
