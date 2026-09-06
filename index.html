@@ -115,7 +115,7 @@
   .ward-popup .section-label{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:10px 0 2px;}
 
   .date-input{font-family:var(--font-mono);font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--panel);color:var(--ink);}
-  .map-rank-grid{display:grid;grid-template-columns:0.85fr 1.15fr;gap:16px;height:650px;}
+  .map-rank-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;height:650px;}
   .map-rank-grid > *{min-width:0;min-height:0;}
   @media(max-width:860px){.map-rank-grid{grid-template-columns:1fr;height:auto;}
     .map-rank-grid .map-card{height:500px;}
@@ -132,7 +132,6 @@
   .rank-table thead th{position:sticky;top:0;z-index:2;}
   .rank-table th{text-align:left;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:9px 14px;border-bottom:1px solid var(--line);background:var(--paper);white-space:normal;}
   .rank-table td{padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;font-size:12.5px;}
-  .rank-table tr:nth-child(even) td{background:#FAFCFB;}
   .rank-table td.rank-cell{font-family:var(--font-display);font-weight:700;font-size:15px;}
   .rank-table td.ward-cell{font-weight:600;white-space:nowrap;}
   .rank-table td.badge-cell span{display:inline-block;padding:3px 10px;border-radius:999px;color:#fff;font-size:11px;font-weight:600;font-family:var(--font-mono);white-space:nowrap;}
@@ -950,7 +949,7 @@ function fitToWards(){
      zoom in slightly further so the shape fills the box more fully, at the
      cost of the very outer edge of a few border wards being just outside
      the visible frame — matching the tightly-framed reference view. */
-  riskMap.setZoom(riskMap.getZoom() + 0.6, { animate: false });
+  riskMap.setZoom(riskMap.getZoom() + 0.3, { animate: false });
 }
 
 function refreshRiskStyles(){
@@ -963,6 +962,9 @@ function refreshRiskStyles(){
 }
 
 /* ===== Ranking table ===== */
+const RISK_ROW_BG = { high:'#ffd6d6', med:'#fff3a3', low:'#c8f7d4', nodata:'#efefef' };
+const RISK_TEXT_ON_BADGE = { high:'#ffffff', med:'#3a3000', low:'#0d3d1f', nodata:'#4a4a4a' };
+
 function renderRankTable(rows, lang){
   const table = document.getElementById('rankTable');
   const headers = lang === 'en'
@@ -972,12 +974,14 @@ function renderRankTable(rows, lang){
   const body = rows.map((r,i) => {
     const st = RISK_STYLE[r.risk] || NODATA_STYLE;
     const label = RISK_LABELS[st.key][lang];
-    return `<tr>
+    const rowBg = RISK_ROW_BG[st.key] || RISK_ROW_BG.nodata;
+    const textColor = RISK_TEXT_ON_BADGE[st.key] || RISK_TEXT_ON_BADGE.nodata;
+    return `<tr style="background:${rowBg};">
       <td class="rank-cell">${i+1}</td>
       <td class="ward-cell">${r.wardfc || r.ward}</td>
       <td>${r.zone != null ? r.zone : '—'}</td>
       <td>${r.area || '—'}</td>
-      <td class="badge-cell"><span style="background:${st.color}">${label}</span></td>
+      <td class="badge-cell"><span style="background:${st.color};color:${textColor};">${label}</span></td>
     </tr>`;
   }).join('');
   table.innerHTML = thead + `<tbody>${body}</tbody>`;
