@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ডেঙ্গু ওয়াচ | DNCC দৈনিক প্রতিবেদন</title>
+<title>ডেঙ্গু ওয়াচ | DGHS দৈনিক প্রতিবেদন</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
@@ -1036,6 +1036,16 @@ function initRiskMap(){
         permanent: true, direction: 'center', className: 'ward-number-label', interactive: false
       });
       layer.bindPopup(() => riskPopupHtml(wardNo, feature.properties), { maxWidth: 300, maxHeight: 380 });
+      layer.on('popupopen', (e) => {
+        const d = riskWardData[wardNo];
+        const st = d ? (RISK_STYLE[d.risk] || NODATA_STYLE) : NODATA_STYLE;
+        const bg = RISK_ROW_BG[st.key] || RISK_ROW_BG.nodata;
+        const container = e.popup.getElement ? e.popup.getElement() : e.popup._container;
+        const wrapper = container && container.querySelector('.leaflet-popup-content-wrapper');
+        const tip = container && container.querySelector('.leaflet-popup-tip');
+        if(wrapper) wrapper.style.background = bg;
+        if(tip) tip.style.background = bg;
+      });
       layer.on('mouseover', () => layer.setStyle({ weight: 2.4, color: '#111111' }));
       layer.on('mouseout', () => layer.setStyle({ weight: 1, color: '#333333' }));
     }
