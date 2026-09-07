@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ডেঙ্গু ওয়াচ | DGHS দৈনিক প্রতিবেদন</title>
+<title>ডেঙ্গু ওয়াচ | DNCC দৈনিক প্রতিবেদন</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
@@ -811,16 +811,22 @@ document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
 loadDashboard();
 
 /* ---------------- View counter ---------------- */
+/* countapi.xyz (the original service used here) has shut down permanently
+   (expired SSL cert, server not responding) — every request to it fails,
+   which is why the count always fell back to the static base number.
+   Abacus is the actively-maintained, purpose-built replacement. */
 const VIEW_COUNT_BASE = 3726;
 async function loadViewCount(){
   const el = document.getElementById('viewCount');
   if(!el) return;
   try{
-    const res = await fetch('https://api.countapi.xyz/hit/dncc-dengue-watch/main-page');
+    const res = await fetch('https://abacus.jasoncameron.dev/hit/dncc-dengue-watch/main-page');
+    if(!res.ok) throw new Error('bad status ' + res.status);
     const data = await res.json();
     const total = VIEW_COUNT_BASE + (typeof data.value === 'number' ? data.value : 0);
     el.textContent = total.toLocaleString();
   } catch(err){
+    console.error('view counter unavailable:', err);
     el.textContent = VIEW_COUNT_BASE.toLocaleString() + '+';
   }
 }
