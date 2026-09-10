@@ -156,6 +156,19 @@
   .officer-card .officer-phone{font-family:var(--font-mono);font-size:13px;color:var(--accent);}
 
   .site-footer{max-width:1180px;margin:0 auto;padding:24px 18px 40px;text-align:center;border-top:1px solid var(--line);margin-top:8px;}
+
+  .feedback-card{padding:24px 26px;}
+  .fb-field{margin-bottom:18px;}
+  .fb-field label{display:block;font-weight:600;font-size:14px;color:var(--ink);margin-bottom:8px;}
+  .fb-field textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:var(--font-body);font-size:13.5px;color:var(--ink);resize:vertical;background:var(--paper);}
+  .fb-radio-group{display:flex;gap:18px;}
+  .fb-radio{display:flex;align-items:center;gap:6px;font-weight:400!important;font-size:14px;cursor:pointer;}
+  .fb-radio input{width:16px;height:16px;accent-color:var(--accent);}
+  .fb-submit{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:11px 26px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-body);}
+  .fb-submit:disabled{opacity:.6;cursor:not-allowed;}
+  .fb-status{margin-top:12px;font-size:13px;}
+  .fb-status.ok{color:var(--risk-low);}
+  .fb-status.err{color:var(--risk-high);}
   .footer-credit{font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;}
   .footer-views{font-family:var(--font-mono);font-size:12px;color:var(--muted);}
   .rank-table thead th{position:sticky;top:0;z-index:2;}
@@ -372,12 +385,33 @@
 
   <section class="block" id="feedbackSection">
     <h2 class="section-title"><span data-bn>মতামত জানান</span><span data-en>Share Your Feedback</span></h2>
-    <div class="chart-card" style="padding:0;overflow:hidden;">
-      <iframe
-        src="https://docs.google.com/forms/d/1Pgj1Tzce7YTmzoIlfl_HtvlNYUaOqSxvCBjR2IYdtf4/viewform?embedded=true"
-        width="100%" height="900" frameborder="0" style="display:block;border:none;">
-        <span data-bn>লোড হচ্ছে…</span><span data-en>Loading…</span>
-      </iframe>
+    <div class="chart-card feedback-card">
+      <div id="feedbackNotConfigured" class="state-msg" style="display:none;">
+        Feedback form backend not yet configured.
+      </div>
+      <form id="feedbackForm">
+        <div class="fb-field">
+          <label><span data-bn>ড্যাশবোর্ড কি কাজে লেগেছে?</span><span data-en>Was the dashboard useful?</span></label>
+          <div class="fb-radio-group">
+            <label class="fb-radio"><input type="radio" name="useful" value="হ্যাঁ" required>
+              <span data-bn>হ্যাঁ</span><span data-en>Yes</span></label>
+            <label class="fb-radio"><input type="radio" name="useful" value="না">
+              <span data-bn>না</span><span data-en>No</span></label>
+          </div>
+        </div>
+        <div class="fb-field">
+          <label for="fbUsefulInfo"><span data-bn>সবচেয়ে উপকারী তথ্য কী ছিল?</span><span data-en>What was the most useful information?</span></label>
+          <textarea id="fbUsefulInfo" name="usefulInfo" rows="3"></textarea>
+        </div>
+        <div class="fb-field">
+          <label for="fbSuggestion"><span data-bn>প্রস্তাবনা</span><span data-en>Suggestions</span></label>
+          <textarea id="fbSuggestion" name="suggestion" rows="3"></textarea>
+        </div>
+        <button type="submit" class="fb-submit" id="fbSubmitBtn">
+          <span data-bn>জমা দিন</span><span data-en>Submit</span>
+        </button>
+        <div class="fb-status" id="fbStatus"></div>
+      </form>
     </div>
   </section>
 
@@ -943,13 +977,30 @@ async function loadHospitals(){
       wrap.innerHTML = '<div class="state-msg">Could not find hospital columns in list_hosp_diag_ward — check that sheet\u2019s header names.</div>';
       return;
     }
-    /* Only show free dengue testing centers, not every facility in this sheet. */
-    const FREE_TEST_TYPE = 'ফ্রি ডেঙ্গু টেস্টিং সেন্টার';
+    /* Only show free dengue testing centers, not every facility in this sheet.
+       Match loosely (contains "ফ্রি" + "টেস্ট") rather than requiring an exact
+       string, since the sheet's actual wording/spacing can drift from any
+       single hardcoded string. */
     let rows = records;
+    let usedTypeFilter = false;
     if(typeCol){
-      rows = records.filter(r => (r[typeCol] || '').trim() === FREE_TEST_TYPE);
+      const filtered = records.filter(r => {
+        const v = (r[typeCol] || '').trim();
+        return v.includes('ফ্রি') && (v.includes('টেস্ট') || v.toLowerCase().includes('test'));
+      });
+      if(filtered.length){
+        rows = filtered;
+        usedTypeFilter = true;
+      } else {
+        const distinctTypes = [...new Set(records.map(r => (r[typeCol]||'').trim()).filter(Boolean))];
+        console.warn('list_hosp_diag_ward: type filter matched 0 rows. Distinct type values found:', distinctTypes);
+      }
     } else {
       console.warn('list_hosp_diag_ward: no "type" column found — showing all rows unfiltered.');
+    }
+    if(!usedTypeFilter){
+      wrap.innerHTML = '<div class="state-msg">Could not find rows matching a free dengue test center type in list_hosp_diag_ward — check the console for the type values actually present in that sheet, or check that column\u2019s header/values.</div>';
+      return;
     }
     hospitalRecords = rows.map(r => ({
       ward: wardfcCol ? r[wardfcCol] : '',
@@ -1013,6 +1064,61 @@ async function loadViewCount(){
   }
 }
 loadViewCount();
+
+/* ---------------- Feedback form ---------------- */
+/* This posts to a tiny Apps Script Web App bound to the feedback sheet
+   (1pMjGYpLlit-kVUWTMJQx3UMhh4IvTnNYNilNCjy6FUU). Fill in the deployed
+   Web App URL below once it's set up — see the accompanying setup
+   instructions for the script to paste in and how to deploy it. */
+const FEEDBACK_ENDPOINT_URL = '';
+
+(function(){
+  const form = document.getElementById('feedbackForm');
+  const statusEl = document.getElementById('fbStatus');
+  const btn = document.getElementById('fbSubmitBtn');
+  const notConfigured = document.getElementById('feedbackNotConfigured');
+
+  if(!FEEDBACK_ENDPOINT_URL){
+    form.style.display = 'none';
+    notConfigured.style.display = 'block';
+    return;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const lang = document.body.getAttribute('data-lang') || 'bn';
+    const fd = new FormData(form);
+    const payload = {
+      useful: fd.get('useful') || '',
+      usefulInfo: (fd.get('usefulInfo') || '').trim(),
+      suggestion: (fd.get('suggestion') || '').trim()
+    };
+    btn.disabled = true;
+    statusEl.className = 'fb-status';
+    statusEl.textContent = lang === 'en' ? 'Submitting…' : 'জমা দেওয়া হচ্ছে…';
+    try{
+      /* Apps Script Web Apps don't return CORS headers for cross-origin
+         reads, so the response body isn't readable here — a successful
+         (non-network-error) POST is treated as success, matching the
+         standard pattern for this kind of endpoint. */
+      await fetch(FEEDBACK_ENDPOINT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      statusEl.className = 'fb-status ok';
+      statusEl.textContent = lang === 'en' ? 'Thank you — your feedback has been submitted.' : 'ধন্যবাদ — আপনার মতামত জমা হয়েছে।';
+      form.reset();
+    } catch(err){
+      console.error(err);
+      statusEl.className = 'fb-status err';
+      statusEl.textContent = lang === 'en' ? 'Could not submit feedback — please try again.' : 'মতামত জমা দিতে সমস্যা হয়েছে — আবার চেষ্টা করুন।';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
