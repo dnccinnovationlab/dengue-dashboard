@@ -889,8 +889,11 @@ async function loadOfficers(){
     const zoneCol = findColExact(headers, 'zone');
     const zoneBnCol = findColExact(headers, 'অঞ্চল');
     const officerBnCol = findColExact(headers, 'সহকারী স্বাস্থ্য কর্মকর্তার নাম');
-    const officerEnCol = headers.find(h => h.toLowerCase().includes('assistant health officer name'));
-    const phoneCol = headers.find(h => h.toLowerCase().includes('assistant health officer number'));
+    /* Note: the live sheet's header has a typo — "Asssitant" (3 s's) not
+       "Assistant" — so match on "officer name" / "officer number" instead
+       of the full word, which works regardless of that typo. */
+    const officerEnCol = headers.find(h => h.toLowerCase().includes('officer name'));
+    const phoneCol = headers.find(h => h.toLowerCase().includes('officer number'));
     if(!zoneCol || !officerEnCol || !phoneCol){
       grid.innerHTML = '<div class="state-msg">Could not find officer columns in mosquito_control_detailed — check that sheet\u2019s header names.</div>';
       return;
@@ -935,11 +938,20 @@ async function loadHospitals(){
     const nameBnCol = findColExact(headers, 'নাম');
     const mobileCol = findColExact(headers, 'mobile');
     const addressCol = findColExact(headers, 'address');
+    const typeCol = headers.find(h => h.toLowerCase().trim() === 'type') || headers.find(h => h.toLowerCase().includes('type'));
     if(!nameCol){
       wrap.innerHTML = '<div class="state-msg">Could not find hospital columns in list_hosp_diag_ward — check that sheet\u2019s header names.</div>';
       return;
     }
-    hospitalRecords = records.map(r => ({
+    /* Only show free dengue testing centers, not every facility in this sheet. */
+    const FREE_TEST_TYPE = 'ফ্রি ডেঙ্গু টেস্টিং সেন্টার';
+    let rows = records;
+    if(typeCol){
+      rows = records.filter(r => (r[typeCol] || '').trim() === FREE_TEST_TYPE);
+    } else {
+      console.warn('list_hosp_diag_ward: no "type" column found — showing all rows unfiltered.');
+    }
+    hospitalRecords = rows.map(r => ({
       ward: wardfcCol ? r[wardfcCol] : '',
       name: r[nameCol] || '',
       nameBn: nameBnCol ? r[nameBnCol] : '',
