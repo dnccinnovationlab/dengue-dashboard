@@ -109,7 +109,7 @@
   .leaflet-tooltip.ward-number-label::before{display:none;}
   .ward-popup{font-family:var(--font-body);min-width:220px;max-width:270px;}
   .ward-popup h4{font-family:var(--font-display);margin:0 0 4px;font-size:16px;font-weight:600;}
-  .ward-popup .badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;color:#fff;margin-bottom:8px;font-family:var(--font-mono);letter-spacing:.02em;}
+  .ward-popup .badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;color:#111111;margin-bottom:8px;font-family:var(--font-mono);letter-spacing:.02em;}
   .ward-popup .summary{font-size:12.5px;color:var(--ink);line-height:1.5;margin-bottom:10px;}
   .ward-popup table{width:100%;border-collapse:collapse;font-size:12.5px;}
   .ward-popup td{padding:4px 0;border-top:1px solid var(--line);}
@@ -148,6 +148,12 @@
   .prevention-card li{margin-bottom:5px;}
   .prevention-contact{font-weight:700;margin:14px 0 4px;}
   .prevention-numbers{margin:0;}
+
+  .officer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
+  .officer-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+  .officer-card .zone-label{font-family:var(--font-mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+  .officer-card .officer-name{font-family:var(--font-display);font-weight:600;font-size:15px;margin-bottom:4px;color:var(--ink);}
+  .officer-card .officer-phone{font-family:var(--font-mono);font-size:13px;color:var(--accent);}
 
   .site-footer{max-width:1180px;margin:0 auto;padding:24px 18px 40px;text-align:center;border-top:1px solid var(--line);margin-top:8px;}
   .footer-credit{font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;}
@@ -248,6 +254,10 @@
         <a href="https://drive.google.com/file/d/1QsvBzixKc2XU9-jsugV6qU7Oo5hrc65u/view?usp=drive_link" target="_blank" rel="noopener" style="font-family:var(--font-mono);font-size:11px;color:var(--accent);text-decoration:none;">
           <span data-bn>পদ্ধতি (মেথডোলজি) →</span><span data-en>Methodology →</span>
         </a>
+        <p style="font-size:10.5px;color:var(--risk-high);margin:4px 0 0;line-height:1.5;max-width:520px;">
+          <span data-bn>ডিজিএইচএস থেকে প্রাপ্ত উপাত্ত ডিএনসিসি কর্তৃক যাচাই-বাছাই করে রোগীর ঠিকানাগুলোকে গুগল জিওকোডিং-এর মাধ্যমে নির্দিষ্ট ওয়ার্ড ও জোনে ফেলা হয়।</span>
+          <span data-en>Data received from DGHS is verified by DNCC, and patient addresses are mapped to specific wards and zones using Google geocoding.</span>
+        </p>
       </div>
       <div class="toggle-block">
         <span class="toggle-group-label"><span data-bn>তারিখ নির্বাচন করুন</span><span data-en>Select date</span></span>
@@ -341,6 +351,36 @@
     </div>
   </section>
 
+  <section class="block" id="officersSection">
+    <h2 class="section-title"><span data-bn>স্বাস্থ্য কর্মকর্তার যোগাযোগ (অঞ্চলভিত্তিক)</span><span data-en>Assistant Health Officer Contacts (by Zone)</span></h2>
+    <div class="officer-grid" id="officerGrid">
+      <div class="state-msg" data-bn>লোড হচ্ছে…</div><div class="state-msg" data-en>Loading…</div>
+    </div>
+  </section>
+
+  <section class="block" id="hospitalSection">
+    <div class="controls-bar">
+      <h2 class="section-title" style="margin:0;flex:1;text-align:left;"><span data-bn>বিনামূল্যে ডেঙ্গু পরীক্ষা কেন্দ্র</span><span data-en>Free Dengue Test Centers</span></h2>
+      <input type="text" id="hospSearch" class="date-input" placeholder="Search ward, name, address…" style="min-width:220px;">
+    </div>
+    <div class="chart-card" style="padding:0;overflow:hidden;">
+      <div id="hospTableWrap" style="max-height:520px;overflow-y:auto;">
+        <table class="rank-table" id="hospTable"></table>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="feedbackSection">
+    <h2 class="section-title"><span data-bn>মতামত জানান</span><span data-en>Share Your Feedback</span></h2>
+    <div class="chart-card" style="padding:0;overflow:hidden;">
+      <iframe
+        src="https://docs.google.com/forms/d/1Pgj1Tzce7YTmzoIlfl_HtvlNYUaOqSxvCBjR2IYdtf4/viewform?embedded=true"
+        width="100%" height="900" frameborder="0" style="display:block;border:none;">
+        <span data-bn>লোড হচ্ছে…</span><span data-en>Loading…</span>
+      </iframe>
+    </div>
+  </section>
+
 </main>
 
 <footer class="site-footer">
@@ -370,6 +410,8 @@ function setLang(l){
   btnEn.classList.toggle('active', l==='en');
   if(typeof onLangChangeForMap === 'function') onLangChangeForMap(l);
   if(dghsDailySeries.length) renderTrendChart();
+  if(typeof renderOfficers === 'function') renderOfficers();
+  if(typeof applyHospFilter === 'function') applyHospFilter();
 }
 
 /* ---------------- CSV PARSER ---------------- */
@@ -649,9 +691,25 @@ function renderLinesChart(container, series, rangeEl){
   });
 
   const ref = series.reduce((a,b)=> a.points.length>=b.points.length?a:b, series[0]);
-  const labelEvery = Math.max(Math.floor(ref.points.length / 9), 1);
   let xLabels = '';
-  ref.points.forEach((p,i) => { if(i % labelEvery === 0 || i === ref.points.length-1){ xLabels += `<text x="${scaleX(p.x).toFixed(1)}" y="${H-10}" font-size="9" fill="#5B6E68" font-family="JetBrains Mono, monospace" text-anchor="middle">${p.label}</text>`; } });
+  let lastLabelX = -Infinity;
+  const minLabelGap = 44;
+  ref.points.forEach((p,i) => {
+    const x = scaleX(p.x);
+    if(x - lastLabelX >= minLabelGap){
+      xLabels += `<text x="${x.toFixed(1)}" y="${H-10}" font-size="9" fill="#5B6E68" font-family="JetBrains Mono, monospace" text-anchor="middle">${p.label}</text>`;
+      lastLabelX = x;
+    }
+  });
+  /* Always try to show the very last point's label too, but only if it
+     doesn't collide with whichever label ended up closest to it. */
+  const lastPoint = ref.points[ref.points.length-1];
+  if(lastPoint){
+    const lastX = scaleX(lastPoint.x);
+    if(lastX - lastLabelX >= minLabelGap){
+      xLabels += `<text x="${lastX.toFixed(1)}" y="${H-10}" font-size="9" fill="#5B6E68" font-family="JetBrains Mono, monospace" text-anchor="end">${lastPoint.label}</text>`;
+    }
+  }
 
   const legend = series.map(s => `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;"><i style="width:10px;height:10px;border-radius:3px;background:${s.color};display:inline-block;"></i>${s.name}</span>`).join('');
 
@@ -809,6 +867,118 @@ async function loadDashboard(){
 }
 document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
 loadDashboard();
+
+/* ---------------- Health officers & free test centers ---------------- */
+const MOSQUITO_TAB = 'mosquito_control_detailed';
+const HOSP_TAB = 'list_hosp_diag_ward';
+
+async function fetchSheetCsv(sheetId, tabName){
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+  const res = await fetch(url, {cache:"no-store"});
+  if(!res.ok) throw new Error('fetch failed for ' + tabName);
+  return parseCSV(await res.text());
+}
+
+let officerRecords = [];
+let hospitalRecords = [];
+
+async function loadOfficers(){
+  const grid = document.getElementById('officerGrid');
+  try{
+    const { headers, records } = await fetchSheetCsv(SHEET_HOSP_ID, MOSQUITO_TAB);
+    const zoneCol = findColExact(headers, 'zone');
+    const zoneBnCol = findColExact(headers, 'অঞ্চল');
+    const officerBnCol = findColExact(headers, 'সহকারী স্বাস্থ্য কর্মকর্তার নাম');
+    const officerEnCol = headers.find(h => h.toLowerCase().includes('assistant health officer name'));
+    const phoneCol = headers.find(h => h.toLowerCase().includes('assistant health officer number'));
+    if(!zoneCol || !officerEnCol || !phoneCol){
+      grid.innerHTML = '<div class="state-msg">Could not find officer columns in mosquito_control_detailed — check that sheet\u2019s header names.</div>';
+      return;
+    }
+    const seen = new Map();
+    records.forEach(r => {
+      const zone = (r[zoneCol]||'').trim();
+      const name = (r[officerEnCol]||'').trim();
+      const phone = (r[phoneCol]||'').trim();
+      if(!zone || !name) return;
+      const key = zone + '|' + name + '|' + phone;
+      if(!seen.has(key)){
+        seen.set(key, { zone, zoneBn: zoneBnCol ? r[zoneBnCol] : zone, name, nameBn: officerBnCol ? r[officerBnCol] : name, phone });
+      }
+    });
+    officerRecords = Array.from(seen.values()).sort((a,b) => Number(a.zone) - Number(b.zone));
+    renderOfficers();
+  } catch(err){
+    console.error(err);
+    grid.innerHTML = '<div class="state-msg">Could not load officer data — make sure the sheet is shared as "Anyone with the link can view".</div>';
+  }
+}
+function renderOfficers(){
+  const grid = document.getElementById('officerGrid');
+  if(!officerRecords.length) return;
+  const lang = document.body.getAttribute('data-lang') || 'bn';
+  const zoneLabel = lang === 'en' ? 'Zone' : 'অঞ্চল';
+  grid.innerHTML = officerRecords.map(o => `
+    <div class="officer-card">
+      <div class="zone-label">${zoneLabel} ${lang==='en'?o.zone:o.zoneBn}</div>
+      <div class="officer-name">${lang==='en'?o.name:o.nameBn}</div>
+      <div class="officer-phone">${o.phone || '\u2014'}</div>
+    </div>`).join('');
+}
+
+async function loadHospitals(){
+  const wrap = document.getElementById('hospTableWrap');
+  try{
+    const { headers, records } = await fetchSheetCsv(SHEET_HOSP_ID, HOSP_TAB);
+    const wardfcCol = findColExact(headers, 'wardfc');
+    const nameCol = findColExact(headers, 'name');
+    const nameBnCol = findColExact(headers, 'নাম');
+    const mobileCol = findColExact(headers, 'mobile');
+    const addressCol = findColExact(headers, 'address');
+    if(!nameCol){
+      wrap.innerHTML = '<div class="state-msg">Could not find hospital columns in list_hosp_diag_ward — check that sheet\u2019s header names.</div>';
+      return;
+    }
+    hospitalRecords = records.map(r => ({
+      ward: wardfcCol ? r[wardfcCol] : '',
+      name: r[nameCol] || '',
+      nameBn: nameBnCol ? r[nameBnCol] : '',
+      phone: mobileCol ? r[mobileCol] : '',
+      address: addressCol ? r[addressCol] : ''
+    })).filter(h => h.name);
+    applyHospFilter();
+  } catch(err){
+    console.error(err);
+    wrap.innerHTML = '<div class="state-msg">Could not load hospital data — make sure the sheet is shared as "Anyone with the link can view".</div>';
+  }
+}
+function renderHospitals(list){
+  const table = document.getElementById('hospTable');
+  const lang = document.body.getAttribute('data-lang') || 'bn';
+  const headers = lang === 'en' ? ['Ward','Name','Phone','Address'] : ['ওয়ার্ড','নাম','ফোন','ঠিকানা'];
+  const thead = `<thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;
+  const body = list.map(h => `<tr>
+    <td class="ward-cell">${h.ward||'\u2014'}</td>
+    <td>${lang==='en'?h.name:(h.nameBn||h.name)}</td>
+    <td>${h.phone||'\u2014'}</td>
+    <td>${h.address||'\u2014'}</td>
+  </tr>`).join('');
+  table.innerHTML = thead + `<tbody>${body}</tbody>`;
+}
+function applyHospFilter(){
+  if(!hospitalRecords.length) return;
+  const q = (document.getElementById('hospSearch').value || '').trim().toLowerCase();
+  const filtered = !q ? hospitalRecords : hospitalRecords.filter(h =>
+    (h.ward||'').toLowerCase().includes(q) ||
+    (h.name||'').toLowerCase().includes(q) ||
+    (h.nameBn||'').includes(q) ||
+    (h.address||'').toLowerCase().includes(q)
+  );
+  renderHospitals(filtered);
+}
+document.getElementById('hospSearch').addEventListener('input', applyHospFilter);
+loadOfficers();
+loadHospitals();
 
 /* ---------------- View counter ---------------- */
 /* countapi.xyz (the original service used here) has shut down permanently
