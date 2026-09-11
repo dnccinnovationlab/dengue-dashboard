@@ -134,6 +134,17 @@
   .rank-table td:nth-child(3){font-weight:700;text-align:center;}
   .rank-table th:nth-child(5),.rank-table td:nth-child(5){width:104px;}
 
+  /* The hospital table reuses .rank-table's base look but has different
+     columns (Zone, Ward, Facility Name, Focal Person, Mobile), so its
+     column widths need their own rules — these override the ranking
+     table's by-position widths above since they're more specific. */
+  .hosp-table{min-width:640px;}
+  .hosp-table th:nth-child(1),.hosp-table td:nth-child(1){width:56px;}
+  .hosp-table th:nth-child(2),.hosp-table td:nth-child(2){width:92px;}
+  .hosp-table th:nth-child(3),.hosp-table td:nth-child(3){width:auto;}
+  .hosp-table th:nth-child(4),.hosp-table td:nth-child(4){width:150px;}
+  .hosp-table th:nth-child(5),.hosp-table td:nth-child(5){width:120px;}
+
   .section-title{font-family:var(--font-display);font-weight:600;font-size:20px;text-align:center;margin:0 0 16px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;}
   .prevention-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
   @media(max-width:860px){.prevention-grid{grid-template-columns:1fr;}}
@@ -379,8 +390,8 @@
       <input type="text" id="hospSearch" class="date-input" placeholder="Search…" style="min-width:180px;">
     </div>
     <div class="chart-card" style="padding:0;overflow:hidden;">
-      <div id="hospTableWrap" style="max-height:520px;overflow-y:auto;">
-        <table class="rank-table" id="hospTable"></table>
+      <div id="hospTableWrap" style="max-height:520px;overflow-y:auto;overflow-x:auto;">
+        <table class="rank-table hosp-table" id="hospTable"></table>
       </div>
     </div>
   </section>
@@ -973,6 +984,7 @@ async function loadHospitals(){
     const zoneCol = findColExact(headers, 'zone');
     const zoneBnCol = findColExact(headers, 'অঞ্চল');
     const wardfcCol = findColExact(headers, 'wardfc');
+    const wardBnRawCol = headers.find(h => h.includes('ওয়ার্ড'));
     const nameCol = findColExact(headers, 'name');
     const nameBnCol = findColExact(headers, 'নাম');
     const mobileCol = findColExact(headers, 'mobile');
@@ -986,6 +998,7 @@ async function loadHospitals(){
       return;
     }
     if(!focalCol) console.warn('list_hosp_diag_ward: no "focal person" column found — check that sheet\u2019s header names.');
+    if(!wardBnRawCol) console.warn('list_hosp_diag_ward: no Bengali ward column found — ward will show in English even in Bangla mode.');
     /* Only show free dengue testing centers, not every facility in this sheet.
        Match loosely rather than requiring an exact string, since the sheet's
        actual wording/spacing/language can drift from any single hardcoded
@@ -1018,6 +1031,7 @@ async function loadHospitals(){
       zone: zoneCol ? r[zoneCol] : '',
       zoneBn: zoneBnCol ? r[zoneBnCol] : '',
       ward: wardfcCol ? r[wardfcCol] : '',
+      wardBn: wardBnRawCol ? (r[wardBnRawCol]||'').includes('ওয়ার্ড') ? r[wardBnRawCol] : (r[wardBnRawCol] ? 'ওয়ার্ড নং-' + r[wardBnRawCol] : '') : '',
       name: r[nameCol] || '',
       nameBn: nameBnCol ? r[nameBnCol] : '',
       focal: focalCol ? r[focalCol] : '',
@@ -1037,13 +1051,21 @@ function populateHospFilters(){
   const lang = document.body.getAttribute('data-lang') || 'bn';
   const allZoneLabel = lang === 'en' ? 'All zones' : 'সব অঞ্চল';
   const allWardLabel = lang === 'en' ? 'All wards' : 'সব ওয়ার্ড';
-  const zones = [...new Set(hospitalRecords.map(h => (lang==='en' ? h.zone : (h.zoneBn||h.zone))).filter(Boolean))].sort();
-  const wards = [...new Set(hospitalRecords.map(h => h.ward).filter(Boolean))].sort();
   const curZone = zoneSel.value, curWard = wardSel.value;
+
+  const zones = [...new Set(hospitalRecords.map(h => (lang==='en' ? h.zone : (h.zoneBn||h.zone))).filter(Boolean))].sort();
   zoneSel.innerHTML = `<option value="">${allZoneLabel}</option>` + zones.map(z => `<option value="${z}">${z}</option>`).join('');
-  wardSel.innerHTML = `<option value="">${allWardLabel}</option>` + wards.map(w => `<option value="${w}">${w}</option>`).join('');
   if(zones.includes(curZone)) zoneSel.value = curZone;
-  if(wards.includes(curWard)) wardSel.value = curWard;
+
+  /* Ward options are scoped to whichever zone is currently selected, so
+     picking a zone narrows the ward list to that zone's wards only. */
+  const zoneNow = zoneSel.value;
+  const scoped = zoneNow ? hospitalRecords.filter(h => (lang==='en' ? h.zone : (h.zoneBn||h.zone)) === zoneNow) : hospitalRecords;
+  const wardMap = new Map();
+  scoped.forEach(h => { if(h.ward) wardMap.set(h.ward, lang==='en' ? h.ward : (h.wardBn||h.ward)); });
+  const wardEntries = [...wardMap.entries()].sort((a,b) => a[1].localeCompare(b[1]));
+  wardSel.innerHTML = `<option value="">${allWardLabel}</option>` + wardEntries.map(([val,label]) => `<option value="${val}">${label}</option>`).join('');
+  wardSel.value = wardMap.has(curWard) ? curWard : '';
 }
 function renderHospitals(list){
   const table = document.getElementById('hospTable');
@@ -1052,7 +1074,7 @@ function renderHospitals(list){
   const thead = `<thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;
   const body = list.map(h => `<tr>
     <td>${(lang==='en' ? h.zone : (h.zoneBn||h.zone)) || '\u2014'}</td>
-    <td class="ward-cell">${h.ward||'\u2014'}</td>
+    <td class="ward-cell">${(lang==='en' ? h.ward : (h.wardBn||h.ward)) || '\u2014'}</td>
     <td>${lang==='en'?h.name:(h.nameBn||h.name)}</td>
     <td>${(lang==='en' ? h.focal : (h.focalBn||h.focal)) || '\u2014'}</td>
     <td>${h.phone||'\u2014'}</td>
@@ -1080,7 +1102,7 @@ function applyHospFilter(){
   renderHospitals(filtered);
 }
 document.getElementById('hospSearch').addEventListener('input', applyHospFilter);
-document.getElementById('hospZoneFilter').addEventListener('change', applyHospFilter);
+document.getElementById('hospZoneFilter').addEventListener('change', () => { populateHospFilters(); applyHospFilter(); });
 document.getElementById('hospWardFilter').addEventListener('change', applyHospFilter);
 loadOfficers();
 loadHospitals();
