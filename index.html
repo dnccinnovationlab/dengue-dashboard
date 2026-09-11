@@ -374,7 +374,9 @@
   <section class="block" id="hospitalSection">
     <div class="controls-bar">
       <h2 class="section-title" style="margin:0;flex:1;text-align:left;"><span data-bn>বিনামূল্যে ডেঙ্গু পরীক্ষা কেন্দ্র</span><span data-en>Free Dengue Test Centers</span></h2>
-      <input type="text" id="hospSearch" class="date-input" placeholder="Search ward, name, address…" style="min-width:220px;">
+      <select id="hospZoneFilter" class="date-input"><option value=""><!-- filled by JS --></option></select>
+      <select id="hospWardFilter" class="date-input"><option value=""><!-- filled by JS --></option></select>
+      <input type="text" id="hospSearch" class="date-input" placeholder="Search…" style="min-width:180px;">
     </div>
     <div class="chart-card" style="padding:0;overflow:hidden;">
       <div id="hospTableWrap" style="max-height:520px;overflow-y:auto;">
@@ -445,6 +447,7 @@ function setLang(l){
   if(typeof onLangChangeForMap === 'function') onLangChangeForMap(l);
   if(dghsDailySeries.length) renderTrendChart();
   if(typeof renderOfficers === 'function') renderOfficers();
+  if(typeof populateHospFilters === 'function') populateHospFilters();
   if(typeof applyHospFilter === 'function') applyHospFilter();
 }
 
@@ -967,26 +970,33 @@ async function loadHospitals(){
   const wrap = document.getElementById('hospTableWrap');
   try{
     const { headers, records } = await fetchSheetCsv(SHEET_HOSP_ID, HOSP_TAB);
+    const zoneCol = findColExact(headers, 'zone');
+    const zoneBnCol = findColExact(headers, 'অঞ্চল');
     const wardfcCol = findColExact(headers, 'wardfc');
     const nameCol = findColExact(headers, 'name');
     const nameBnCol = findColExact(headers, 'নাম');
     const mobileCol = findColExact(headers, 'mobile');
-    const addressCol = findColExact(headers, 'address');
+    const focalCol = headers.find(h => h.toLowerCase().includes('focal'))
+      || headers.find(h => h.includes('ফোকাল'))
+      || headers.find(h => h.toLowerCase().includes('contact person'));
+    const focalBnCol = headers.find(h => h.includes('ফোকাল') && h !== focalCol);
     const typeCol = headers.find(h => h.toLowerCase().trim() === 'type') || headers.find(h => h.toLowerCase().includes('type'));
     if(!nameCol){
       wrap.innerHTML = '<div class="state-msg">Could not find hospital columns in list_hosp_diag_ward — check that sheet\u2019s header names.</div>';
       return;
     }
+    if(!focalCol) console.warn('list_hosp_diag_ward: no "focal person" column found — check that sheet\u2019s header names.');
     /* Only show free dengue testing centers, not every facility in this sheet.
-       Match loosely (contains "ফ্রি" + "টেস্ট") rather than requiring an exact
-       string, since the sheet's actual wording/spacing can drift from any
-       single hardcoded string. */
+       Match loosely rather than requiring an exact string, since the sheet's
+       actual wording/spacing/language can drift from any single hardcoded
+       string ("Free dengue testing centre" in English, or a Bengali
+       equivalent). */
     let rows = records;
     let usedTypeFilter = false;
     if(typeCol){
       const filtered = records.filter(r => {
         const v = (r[typeCol] || '').trim().toLowerCase();
-        const enMatch = v.includes('free') && v.includes('dengue') && (v.includes('test'));
+        const enMatch = v.includes('free') && v.includes('dengue') && v.includes('test');
         const bnMatch = v.includes('ফ্রি') && (v.includes('টেস্ট') || v.includes('test'));
         return enMatch || bnMatch;
       });
@@ -1005,43 +1015,73 @@ async function loadHospitals(){
       return;
     }
     hospitalRecords = rows.map(r => ({
+      zone: zoneCol ? r[zoneCol] : '',
+      zoneBn: zoneBnCol ? r[zoneBnCol] : '',
       ward: wardfcCol ? r[wardfcCol] : '',
       name: r[nameCol] || '',
       nameBn: nameBnCol ? r[nameBnCol] : '',
-      phone: mobileCol ? r[mobileCol] : '',
-      address: addressCol ? r[addressCol] : ''
+      focal: focalCol ? r[focalCol] : '',
+      focalBn: focalBnCol ? r[focalBnCol] : '',
+      phone: mobileCol ? r[mobileCol] : ''
     })).filter(h => h.name);
+    populateHospFilters();
     applyHospFilter();
   } catch(err){
     console.error(err);
     wrap.innerHTML = '<div class="state-msg">Could not load hospital data — make sure the sheet is shared as "Anyone with the link can view".</div>';
   }
 }
+function populateHospFilters(){
+  const zoneSel = document.getElementById('hospZoneFilter');
+  const wardSel = document.getElementById('hospWardFilter');
+  const lang = document.body.getAttribute('data-lang') || 'bn';
+  const allZoneLabel = lang === 'en' ? 'All zones' : 'সব অঞ্চল';
+  const allWardLabel = lang === 'en' ? 'All wards' : 'সব ওয়ার্ড';
+  const zones = [...new Set(hospitalRecords.map(h => (lang==='en' ? h.zone : (h.zoneBn||h.zone))).filter(Boolean))].sort();
+  const wards = [...new Set(hospitalRecords.map(h => h.ward).filter(Boolean))].sort();
+  const curZone = zoneSel.value, curWard = wardSel.value;
+  zoneSel.innerHTML = `<option value="">${allZoneLabel}</option>` + zones.map(z => `<option value="${z}">${z}</option>`).join('');
+  wardSel.innerHTML = `<option value="">${allWardLabel}</option>` + wards.map(w => `<option value="${w}">${w}</option>`).join('');
+  if(zones.includes(curZone)) zoneSel.value = curZone;
+  if(wards.includes(curWard)) wardSel.value = curWard;
+}
 function renderHospitals(list){
   const table = document.getElementById('hospTable');
   const lang = document.body.getAttribute('data-lang') || 'bn';
-  const headers = lang === 'en' ? ['Ward','Name','Phone','Address'] : ['ওয়ার্ড','নাম','ফোন','ঠিকানা'];
+  const headers = lang === 'en' ? ['Zone','Ward','Facility Name','Focal Person','Mobile'] : ['অঞ্চল','ওয়ার্ড','স্থাপনার নাম','ফোকাল পার্সন','মোবাইল'];
   const thead = `<thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;
   const body = list.map(h => `<tr>
+    <td>${(lang==='en' ? h.zone : (h.zoneBn||h.zone)) || '\u2014'}</td>
     <td class="ward-cell">${h.ward||'\u2014'}</td>
     <td>${lang==='en'?h.name:(h.nameBn||h.name)}</td>
+    <td>${(lang==='en' ? h.focal : (h.focalBn||h.focal)) || '\u2014'}</td>
     <td>${h.phone||'\u2014'}</td>
-    <td>${h.address||'\u2014'}</td>
   </tr>`).join('');
   table.innerHTML = thead + `<tbody>${body}</tbody>`;
 }
 function applyHospFilter(){
   if(!hospitalRecords.length) return;
   const q = (document.getElementById('hospSearch').value || '').trim().toLowerCase();
-  const filtered = !q ? hospitalRecords : hospitalRecords.filter(h =>
-    (h.ward||'').toLowerCase().includes(q) ||
-    (h.name||'').toLowerCase().includes(q) ||
-    (h.nameBn||'').includes(q) ||
-    (h.address||'').toLowerCase().includes(q)
-  );
+  const zoneVal = document.getElementById('hospZoneFilter').value;
+  const wardVal = document.getElementById('hospWardFilter').value;
+  const lang = document.body.getAttribute('data-lang') || 'bn';
+  const filtered = hospitalRecords.filter(h => {
+    const zoneDisplay = lang==='en' ? h.zone : (h.zoneBn||h.zone);
+    if(zoneVal && zoneDisplay !== zoneVal) return false;
+    if(wardVal && h.ward !== wardVal) return false;
+    if(!q) return true;
+    return (h.ward||'').toLowerCase().includes(q) ||
+      (h.name||'').toLowerCase().includes(q) ||
+      (h.nameBn||'').includes(q) ||
+      (h.focal||'').toLowerCase().includes(q) ||
+      (h.focalBn||'').includes(q) ||
+      (h.phone||'').includes(q);
+  });
   renderHospitals(filtered);
 }
 document.getElementById('hospSearch').addEventListener('input', applyHospFilter);
+document.getElementById('hospZoneFilter').addEventListener('change', applyHospFilter);
+document.getElementById('hospWardFilter').addEventListener('change', applyHospFilter);
 loadOfficers();
 loadHospitals();
 
