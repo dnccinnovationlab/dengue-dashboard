@@ -126,7 +126,7 @@
   .rank-card{padding:0;overflow:hidden;display:flex;flex-direction:column;height:100%;}
   .rank-card-head{padding:18px 20px 12px;flex-shrink:0;border-bottom:1px solid var(--line);}
   #rankTableWrap{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:auto;}
-  .rank-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
+  .rank-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;min-width:620px;}
   .rank-table td, .rank-table th{overflow-wrap:break-word;}
   .rank-table th:nth-child(1),.rank-table td:nth-child(1){width:64px;}
   .rank-table th:nth-child(2),.rank-table td:nth-child(2){width:82px;}
@@ -1070,7 +1070,7 @@ function populateHospFilters(){
 function renderHospitals(list){
   const table = document.getElementById('hospTable');
   const lang = document.body.getAttribute('data-lang') || 'bn';
-  const headers = lang === 'en' ? ['Zone','Ward','Facility Name','Focal Person','Mobile'] : ['অঞ্চল','ওয়ার্ড','স্থাপনার নাম','ফোকাল পার্সন','মোবাইল'];
+  const headers = lang === 'en' ? ['Zone','Ward','Facility Name','Focal Person','Mobile'] : ['অঞ্চল','ওয়ার্ড','ফ্যাসিলিটির নাম','ফোকাল পার্সন','মোবাইল'];
   const thead = `<thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;
   const body = list.map(h => `<tr>
     <td>${(lang==='en' ? h.zone : (h.zoneBn||h.zone)) || '\u2014'}</td>
@@ -1466,7 +1466,7 @@ function renderRankTable(rows, lang){
     const textColor = RISK_TEXT_ON_BADGE[st.key] || RISK_TEXT_ON_BADGE.nodata;
     return `<tr style="background:${rowBg};">
       <td class="rank-cell">${i+1}</td>
-      <td class="ward-cell">${r.wardfc || r.ward}</td>
+      <td class="ward-cell">${r.ward || r.wardfc}</td>
       <td>${r.zone != null ? r.zone : '—'}</td>
       <td>${r.area || '—'}</td>
       <td class="badge-cell"><span style="background:${st.color};color:${textColor};">${label}</span></td>
