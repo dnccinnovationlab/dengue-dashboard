@@ -985,8 +985,10 @@ async function loadHospitals(){
     let usedTypeFilter = false;
     if(typeCol){
       const filtered = records.filter(r => {
-        const v = (r[typeCol] || '').trim();
-        return v.includes('ফ্রি') && (v.includes('টেস্ট') || v.toLowerCase().includes('test'));
+        const v = (r[typeCol] || '').trim().toLowerCase();
+        const enMatch = v.includes('free') && v.includes('dengue') && (v.includes('test'));
+        const bnMatch = v.includes('ফ্রি') && (v.includes('টেস্ট') || v.includes('test'));
+        return enMatch || bnMatch;
       });
       if(filtered.length){
         rows = filtered;
