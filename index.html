@@ -295,10 +295,10 @@
         <div id="riskMap"></div>
         <div class="map-loading" id="mapLoading"><span class="map-spinner"></span><span data-bn>লাইভ ঝুঁকি তথ্য আনা হচ্ছে…</span><span data-en>Loading live risk data…</span></div>
         <div class="map-legend">
-          <span><i class="legend-dot" style="background:var(--map-risk-high)"></i><span data-bn>বেশি ঝুঁকি</span><span data-en>High risk</span></span>
-          <span><i class="legend-dot" style="background:var(--map-risk-med)"></i><span data-bn>মাঝারি ঝুঁকি</span><span data-en>Moderate risk</span></span>
-          <span><i class="legend-dot" style="background:var(--map-risk-low)"></i><span data-bn>কম ঝুঁকি</span><span data-en>Low risk</span></span>
-          <span><i class="legend-dot" style="background:var(--nodata)"></i><span data-bn>তথ্য নেই</span><span data-en>No data</span></span>
+          <span><i class="legend-dot" style="background:var(--map-risk-high)"></i>বেশি ঝুঁকি (High risk)</span>
+          <span><i class="legend-dot" style="background:var(--map-risk-med)"></i>মাঝারি ঝুঁকি (Moderate risk)</span>
+          <span><i class="legend-dot" style="background:var(--map-risk-low)"></i>কম ঝুঁকি (Low risk)</span>
+          <span><i class="legend-dot" style="background:var(--nodata)"></i>তথ্য নেই (No data)</span>
         </div>
       </div>
 
@@ -496,6 +496,10 @@ function findCol(headers, patterns){
     if(idx !== -1) return headers[idx];
   }
   return null;
+}
+const BN_DIGITS_LOCAL = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+function toBanglaDigits(n){
+  return String(n).split('').map(ch => (ch >= '0' && ch <= '9') ? BN_DIGITS_LOCAL[+ch] : ch).join('');
 }
 function findColExact(headers, name){
   const idx = headers.findIndex(h => h.trim().toLowerCase() === name.toLowerCase());
@@ -985,6 +989,11 @@ async function loadHospitals(){
     const zoneBnCol = findColExact(headers, 'অঞ্চল');
     const wardfcCol = findColExact(headers, 'wardfc');
     const wardBnRawCol = headers.find(h => h.includes('ওয়ার্ড'));
+    /* Fall back to constructing a Bangla label from the plain numeric
+       "ward" column (e.g. "১" -> "ওয়ার্ড নং-১"), since this sheet doesn't
+       appear to have a dedicated Bengali-formatted ward column. Exact
+       match only here — "wardfc" must not match. */
+    const wardPlainCol = headers.find(h => h.trim().toLowerCase() === 'ward');
     const nameCol = findColExact(headers, 'name');
     const nameBnCol = findColExact(headers, 'নাম');
     const mobileCol = findColExact(headers, 'mobile');
@@ -1031,7 +1040,17 @@ async function loadHospitals(){
       zone: zoneCol ? r[zoneCol] : '',
       zoneBn: zoneBnCol ? r[zoneBnCol] : '',
       ward: wardfcCol ? r[wardfcCol] : '',
-      wardBn: wardBnRawCol ? (r[wardBnRawCol]||'').includes('ওয়ার্ড') ? r[wardBnRawCol] : (r[wardBnRawCol] ? 'ওয়ার্ড নং-' + r[wardBnRawCol] : '') : '',
+      wardBn: (function(){
+        if(wardBnRawCol){
+          const v = r[wardBnRawCol];
+          if(!v) return '';
+          return v.includes('ওয়ার্ড') ? v : ('ওয়ার্ড নং-' + v);
+        }
+        if(wardPlainCol && r[wardPlainCol]){
+          return 'ওয়ার্ড নং-' + toBanglaDigits(r[wardPlainCol]);
+        }
+        return '';
+      })(),
       name: r[nameCol] || '',
       nameBn: nameBnCol ? r[nameBnCol] : '',
       focal: focalCol ? r[focalCol] : '',
@@ -1464,10 +1483,14 @@ function renderRankTable(rows, lang){
     const label = RISK_LABELS[st.key][lang];
     const rowBg = RISK_ROW_BG[st.key] || RISK_ROW_BG.nodata;
     const textColor = RISK_TEXT_ON_BADGE[st.key] || RISK_TEXT_ON_BADGE.nodata;
+    const rankDisplay = lang === 'bn' ? toBanglaDigits(i+1) : (i+1);
+    const wardVal = r.ward || r.wardfc;
+    const wardDisplay = lang === 'bn' ? toBanglaDigits(wardVal) : wardVal;
+    const zoneDisplay = r.zone != null ? (lang === 'bn' ? toBanglaDigits(r.zone) : r.zone) : '—';
     return `<tr style="background:${rowBg};">
-      <td class="rank-cell">${i+1}</td>
-      <td class="ward-cell">${r.ward || r.wardfc}</td>
-      <td>${r.zone != null ? r.zone : '—'}</td>
+      <td class="rank-cell">${rankDisplay}</td>
+      <td class="ward-cell">${wardDisplay}</td>
+      <td>${zoneDisplay}</td>
       <td>${r.area || '—'}</td>
       <td class="badge-cell"><span style="background:${st.color};color:${textColor};">${label}</span></td>
     </tr>`;
