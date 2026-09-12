@@ -1118,6 +1118,15 @@ function applyHospFilter(){
       (h.focalBn||'').includes(q) ||
       (h.phone||'').includes(q);
   });
+  /* Rank by zone (ascending). parseInt on h.zone since that field always
+     holds the plain Western-numeral value regardless of display language. */
+  filtered.sort((a,b) => {
+    const za = parseInt(a.zone, 10), zb = parseInt(b.zone, 10);
+    if(isNaN(za) && isNaN(zb)) return 0;
+    if(isNaN(za)) return 1;
+    if(isNaN(zb)) return -1;
+    return za - zb;
+  });
   renderHospitals(filtered);
 }
 document.getElementById('hospSearch').addEventListener('input', applyHospFilter);
