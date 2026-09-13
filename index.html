@@ -141,7 +141,7 @@
   .hosp-table{min-width:640px;}
   .hosp-table th:nth-child(1),.hosp-table td:nth-child(1){width:56px;}
   .hosp-table th:nth-child(2),.hosp-table td:nth-child(2){width:92px;}
-  .hosp-table th:nth-child(3),.hosp-table td:nth-child(3){width:auto;}
+  .hosp-table th:nth-child(3),.hosp-table td:nth-child(3){width:auto;text-align:center;}
   .hosp-table th:nth-child(4),.hosp-table td:nth-child(4){width:150px;}
   .hosp-table th:nth-child(5),.hosp-table td:nth-child(5){width:120px;}
 
@@ -997,6 +997,8 @@ async function loadHospitals(){
     const nameCol = findColExact(headers, 'name');
     const nameBnCol = findColExact(headers, 'নাম');
     const mobileCol = findColExact(headers, 'mobile');
+    const addressCol = findColExact(headers, 'address');
+    const addressBnCol = headers.find(h => h.includes('ঠিকানা'));
     const focalCol = headers.find(h => h.toLowerCase().includes('focal'))
       || headers.find(h => h.includes('ফোকাল'))
       || headers.find(h => h.toLowerCase().includes('contact person'));
@@ -1053,6 +1055,8 @@ async function loadHospitals(){
       })(),
       name: r[nameCol] || '',
       nameBn: nameBnCol ? r[nameBnCol] : '',
+      address: addressCol ? r[addressCol] : '',
+      addressBn: addressBnCol ? r[addressBnCol] : '',
       focal: focalCol ? r[focalCol] : '',
       focalBn: focalBnCol ? r[focalBnCol] : '',
       phone: mobileCol ? r[mobileCol] : ''
@@ -1089,15 +1093,20 @@ function populateHospFilters(){
 function renderHospitals(list){
   const table = document.getElementById('hospTable');
   const lang = document.body.getAttribute('data-lang') || 'bn';
-  const headers = lang === 'en' ? ['Zone','Ward','Facility Name','Focal Person','Mobile'] : ['অঞ্চল','ওয়ার্ড','ফ্যাসিলিটির নাম','ফোকাল পার্সন','মোবাইল'];
+  const headers = lang === 'en' ? ['Zone','Ward','Facility Name and Address','Focal Person','Mobile'] : ['অঞ্চল','ওয়ার্ড','ফ্যাসিলিটির নাম এবং ঠিকানা','ফোকাল পার্সন','মোবাইল'];
   const thead = `<thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;
-  const body = list.map(h => `<tr>
+  const body = list.map(h => {
+    const nameDisplay = lang==='en' ? h.name : (h.nameBn||h.name);
+    const addressDisplay = lang==='en' ? h.address : (h.addressBn||h.address);
+    const nameAndAddress = addressDisplay ? `${nameDisplay}, ${addressDisplay}` : nameDisplay;
+    return `<tr>
     <td>${(lang==='en' ? h.zone : (h.zoneBn||h.zone)) || '\u2014'}</td>
     <td class="ward-cell">${(lang==='en' ? h.ward : (h.wardBn||h.ward)) || '\u2014'}</td>
-    <td>${lang==='en'?h.name:(h.nameBn||h.name)}</td>
+    <td class="hosp-name-cell">${nameAndAddress}</td>
     <td>${(lang==='en' ? h.focal : (h.focalBn||h.focal)) || '\u2014'}</td>
     <td>${h.phone||'\u2014'}</td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
   table.innerHTML = thead + `<tbody>${body}</tbody>`;
 }
 function applyHospFilter(){
@@ -1162,7 +1171,7 @@ loadViewCount();
    (1pMjGYpLlit-kVUWTMJQx3UMhh4IvTnNYNilNCjy6FUU). Fill in the deployed
    Web App URL below once it's set up — see the accompanying setup
    instructions for the script to paste in and how to deploy it. */
-const FEEDBACK_ENDPOINT_URL = '';
+const FEEDBACK_ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbz9WK98XvVrJemOnrW3p1zaYEZ9PPZyQpQMbuCThUzOiz7pkthVDJA1JsCeGsUofLVOyg/exec';
 
 (function(){
   const form = document.getElementById('feedbackForm');
