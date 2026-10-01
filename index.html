@@ -182,6 +182,17 @@
   .fb-status.err{color:var(--risk-high);}
   .footer-credit{font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;}
   .footer-views{font-family:var(--font-mono);font-size:12px;color:var(--muted);}
+
+  .dev-info-wrap{position:relative;display:inline-block;margin-left:5px;}
+  .dev-info-btn{background:none;border:none;padding:0;margin:0;font-size:13px;color:var(--muted);cursor:pointer;line-height:1;vertical-align:middle;font-family:inherit;}
+  .dev-info-btn:hover{color:var(--accent);}
+  .dev-info-pop{display:none;position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:14px 16px;border-radius:12px;font-size:12.5px;line-height:1.55;white-space:normal;width:250px;box-shadow:0 8px 22px rgba(18,42,44,.32);z-index:20;text-align:left;font-family:var(--font-body);}
+  .dev-info-pop.show{display:block;}
+  .dev-info-pop::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--ink);}
+  .dev-info-title{font-weight:600;margin-bottom:5px;color:#9FC9C4;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;}
+  .dev-info-name{font-weight:700;font-family:var(--font-display);font-size:14px;}
+  .dev-info-role,.dev-info-org{color:#D7E6E3;font-size:12px;}
+  .dev-info-skills{color:#9FC9C4;font-size:10.5px;margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.15);line-height:1.6;}
   .rank-table thead th{position:sticky;top:0;z-index:2;}
   .rank-table th{text-align:left;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:9px 14px;border-bottom:1px solid var(--line);background:var(--paper);white-space:normal;}
   .rank-table td{padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;font-size:12.5px;}
@@ -432,11 +443,21 @@
 
 <footer class="site-footer">
   <div class="footer-credit">
-    <span data-bn>কারিগরী সহায়তায়ঃ ডিএনসিসি ইনোভেশন ল্যাব, ইউএনডিপি</span>
+    <span data-bn>কারিগরি সহায়তায়: ডিএনসিসি ইনোভেশন ল্যাব, ইউএনডিপি</span>
     <span data-en>Technical support: DNCC Innovation Lab, UNDP</span>
+    <span class="dev-info-wrap">
+      <button type="button" class="dev-info-btn" id="devInfoBtn" aria-label="Developer info" aria-expanded="false">ⓘ</button>
+      <div class="dev-info-pop" id="devInfoPop" role="dialog">
+        <div class="dev-info-title"><span data-bn>এন্ড-টু-এন্ড ড্যাশবোর্ড ডেভেলপ করেছেন:</span><span data-en>End-to-End Dashboard Developed by:</span></div>
+        <div class="dev-info-name">Sangita Paul</div>
+        <div class="dev-info-role">Former Data Analyst, UNDP</div>
+        <div class="dev-info-org">DNCC Innovation Lab</div>
+        <div class="dev-info-skills">Data integration • Data management • Statistical methodology & analysis • Visualization • Automation</div>
+      </div>
+    </span>
   </div>
   <div class="footer-views">
-    <span data-bn>মোট ভিউ:</span><span data-en>Total views:</span> <span id="viewCount">…</span>
+    <span data-bn>মোট ভিজিট:</span><span data-en>Total visits:</span> <span id="viewCount">…</span>
   </div>
 </footer>
 
@@ -460,6 +481,7 @@ function setLang(l){
   if(typeof renderOfficers === 'function') renderOfficers();
   if(typeof populateHospFilters === 'function') populateHospFilters();
   if(typeof applyHospFilter === 'function') applyHospFilter();
+  if(typeof renderViewCount === 'function') renderViewCount();
 }
 
 /* ---------------- CSV PARSER ---------------- */
@@ -1150,6 +1172,15 @@ loadHospitals();
    which is why the count always fell back to the static base number.
    Abacus is the actively-maintained, purpose-built replacement. */
 const VIEW_COUNT_BASE = 3726;
+let viewCountTotal = null;
+let viewCountIsFallback = false;
+function renderViewCount(){
+  const el = document.getElementById('viewCount');
+  if(!el || viewCountTotal === null) return;
+  const lang = document.body.getAttribute('data-lang') || 'bn';
+  const formatted = viewCountTotal.toLocaleString() + (viewCountIsFallback ? '+' : '');
+  el.textContent = lang === 'bn' ? toBanglaDigits(formatted) : formatted;
+}
 async function loadViewCount(){
   const el = document.getElementById('viewCount');
   if(!el) return;
@@ -1157,14 +1188,35 @@ async function loadViewCount(){
     const res = await fetch('https://abacus.jasoncameron.dev/hit/dncc-dengue-watch/main-page');
     if(!res.ok) throw new Error('bad status ' + res.status);
     const data = await res.json();
-    const total = VIEW_COUNT_BASE + (typeof data.value === 'number' ? data.value : 0);
-    el.textContent = total.toLocaleString();
+    viewCountTotal = VIEW_COUNT_BASE + (typeof data.value === 'number' ? data.value : 0);
+    viewCountIsFallback = false;
   } catch(err){
     console.error('view counter unavailable:', err);
-    el.textContent = VIEW_COUNT_BASE.toLocaleString() + '+';
+    viewCountTotal = VIEW_COUNT_BASE;
+    viewCountIsFallback = true;
   }
+  renderViewCount();
 }
 loadViewCount();
+
+/* ---------------- Developer info popover ---------------- */
+(function(){
+  const btn = document.getElementById('devInfoBtn');
+  const pop = document.getElementById('devInfoPop');
+  if(!btn || !pop) return;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const nowOpen = !pop.classList.contains('show');
+    pop.classList.toggle('show', nowOpen);
+    btn.setAttribute('aria-expanded', String(nowOpen));
+  });
+  document.addEventListener('click', (e) => {
+    if(pop.classList.contains('show') && !pop.contains(e.target) && e.target !== btn){
+      pop.classList.remove('show');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+})();
 
 /* ---------------- Feedback form ---------------- */
 /* This posts to a tiny Apps Script Web App bound to the feedback sheet
