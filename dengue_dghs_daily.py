@@ -69,35 +69,52 @@ def pdf_pages_text(data: bytes):
         return [(p.extract_text() or "") for p in pdf.pages]
 
 
+def trailing_nums(line, k):
+    """Last k numbers of the contiguous run of numeric tokens at the END of the line,
+    or None if the line does not end with at least k numeric tokens.
+    (Works whether the row label is on the same line or not.)"""
+    toks = line.split()
+    run = []
+    for t in reversed(toks):
+        if re.fullmatch(NUM, t):
+            run.append(n(t))
+        else:
+            break
+    run.reverse()
+    return run[-k:] if len(run) >= k else None
+
+
 def parse_report(pages):
     """pages: list[str] (one per PDF page). Returns dict of figures."""
     lines = [[l.strip() for l in p.splitlines() if l.strip()] for p in pages]
 
-    # national totals: first numbers-only 6-number line (page 1)
+    # national totals (page 1): rows that end with 6 numbers = 8 divisions + the total row.
+    # The total is the row whose 24h admissions equal the sum of the other rows.
+    cands = [v for l in (lines[0] if lines else []) if (v := trailing_nums(l, 6))]
     nat = None
-    for l in (lines[0] if lines else []):
-        if ROW6_RE.match(l):
-            nat = [n(x) for x in l.split()]
+    for v in cands:
+        others = [c for c in cands if c is not v]
+        if others and v[0] == sum(c[0] for c in others):
+            nat = v
             break
+    if not nat and cands:
+        nat = max(cands, key=lambda c: c[2])
     if not nat:
         raise ValueError("national total line not found on page 1")
     national = dict(new=nat[0], deaths_24h=nat[1], cum=nat[2], deaths_cum=nat[3])
 
-    # Dhaka metro total: first numbers-only 7-number line (metro table, page 4)
+    # Dhaka metro total: on the first page that has rows ending with 7 numbers
+    # (govt, private, total24h, cum, deaths, discharged, current) take the row with the
+    # largest cumulative figure (= the "Dhaka metro" total row above the district rows).
     metro = None
     for pl in lines:
-        for l in pl:
-            if ROW7_RE.match(l):
-                v = [n(x) for x in l.split()]
-                if v[0] + v[1] == v[2]:      # govt + private == total
-                    metro = v
-                    break
-        if metro:
+        c7 = [v for l in pl if (v := trailing_nums(l, 7)) and v[0] + v[1] == v[2]]
+        if c7:
+            v = max(c7, key=lambda x: x[3])
+            metro = dict(new=v[2], cum=v[3], deaths_cum=v[4], discharged=v[5], current=v[6])
             break
     if not metro:
         raise ValueError("Dhaka metro total line not found")
-    metro = dict(new=metro[2], cum=metro[3], deaths_cum=metro[4],
-                 discharged=metro[5], current=metro[6])
 
     # hospital rows on pages 2-3
     hosp, list_id, last = {}, 0, None
@@ -167,7 +184,14 @@ def report_for(d, urls):
         return None
     if d not in _cache:
         pages = pdf_pages_text(get(urls[d]).content)
-        _cache[d] = parse_report(pages)
+        try:
+            _cache[d] = parse_report(pages)
+        except Exception:
+            log(f"!!! could not parse report for {d} ({urls[d]}). Extracted text follows:")
+            for i, t in enumerate(pages[:4], 1):
+                log(f"--- page {i} (first 40 lines) ---")
+                log("\n".join(t.splitlines()[:40]))
+            raise
     return _cache[d]
 
 
