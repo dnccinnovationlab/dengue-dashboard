@@ -2,7 +2,7 @@ name: Update Dengue CSV
 
 on:
   schedule:
-    - cron: "0 15 * * *"      # 15:00 UTC = 21:00 Bangladesh time (after the press release is out)
+    - cron: "0 11 * * *"      # 15:00 UTC = 17:00 Bangladesh time (after the press release is out)
   workflow_dispatch:
     inputs:
       from_date:
