@@ -1,48 +1,34 @@
 name: Update Dengue CSV
 
-permissions:
-  contents: write
-
 on:
   schedule:
-    - cron: "0 11 * * *"   # 05:00 PM Bangladesh time
+    - cron: "0 15 * * *"      # 15:00 UTC = 21:00 Bangladesh time (after the press release is out)
   workflow_dispatch:
+    inputs:
+      from_date:
+        description: "Backfill from (YYYY-MM-DD, optional)"
+        required: false
+      to_date:
+        description: "Backfill to (YYYY-MM-DD, optional)"
+        required: false
 
 jobs:
-  scrape:
+  update-sheet:
     runs-on: ubuntu-latest
-
-    env:
-      GSHEET_JSON: ${{ secrets.GSHEET_JSON }}
-
+    timeout-minutes: 15
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      # Setup R
-      - name: Setup R
-        uses: r-lib/actions/setup-r@v2
-
-      # Install system dependencies (needed for some R packages)
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
-
-      # Install + cache R packages (FAST 🚀)
-      - name: Setup dependencies
-        uses: r-lib/actions/setup-r-dependencies@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          packages: |
-            httr
-            stringr
-            jsonlite
-            dplyr
-            readr
-            googlesheets4
-          extra-repositories: https://packagemanager.posit.co/cran/latest
-
-      # Run your script
-      - name: Run scraping script
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Download press releases and update Google Sheet
+        env:
+          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GSHEET_JSON }}
+          DAYS_BACK: "3"
         run: |
-          Rscript dghs_dengue_dashboard_fetching.R
+          ARGS=""
+          [ -n "${{ github.event.inputs.from_date }}" ] && ARGS="$ARGS --from-date ${{ github.event.inputs.from_date }}"
+          [ -n "${{ github.event.inputs.to_date }}" ] && ARGS="$ARGS --to-date ${{ github.event.inputs.to_date }}"
+          python dengue_dghs_daily.py $ARGS
