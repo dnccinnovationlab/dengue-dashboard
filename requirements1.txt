@@ -1,0 +1,5 @@
+pdfplumber>=0.11
+requests>=2.31
+gspread>=6.0
+google-auth>=2.29
+playwright>=1.45
