@@ -1,0 +1,55 @@
+# Save as  .github/workflows/dncc_dengue_to_sheet.yml
+name: DNCC dengue patient + death -> Google Sheet
+
+on:
+  schedule:
+    # 11:30 UTC = 17:30 Asia/Dhaka (UTC+6). GitHub may start scheduled runs
+    # 5-30 minutes late at busy times - that is normal.
+    - cron: "30 11 * * *"
+  workflow_dispatch:
+    inputs:
+      cutoff_date:
+        description: "Only use reports AFTER this date (YYYY-MM-DD)"
+        default: "2026-10-18"
+
+concurrency:
+  group: dncc-dengue-sheet
+  cancel-in-progress: false
+
+jobs:
+  update-sheet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GSHEET_JSON }}
+      CUTOFF_DATE: ${{ github.event.inputs.cutoff_date || '2026-10-18' }}
+      SHEET_ID: 164-CIeR5mSutgIUPVS2EteQy1lGMSEzFhHj7iCLqzqg
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Python packages
+        run: pip install -r requirements1.txt
+
+      # headless browser: only used if the DNCC page needs JavaScript to list the PDFs
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Download new report and update the sheet
+        run: python dncc_dengue_to_sheet.py
+
+      - name: Debug info if the run failed
+        if: failure()
+        run: python dncc_dengue_to_sheet.py --discover-only -v > discover.log 2>&1 || true
+
+      - name: Upload debug log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: discover-log
+          path: discover.log
+          if-no-files-found: ignore
