@@ -2,7 +2,7 @@ name: Dengue Daily Update
 
 on:
   schedule:
-    - cron: "30 11 * * *"   # daily at 5:30 PM Bangladesh time
+    - cron: "17 03 * * *"   # daily at 9:17 AM Bangladesh time
   workflow_dispatch:
 
 jobs:
