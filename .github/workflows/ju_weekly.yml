@@ -1,0 +1,58 @@
+name: JU weekly surveillance -> Google Sheet
+
+on:
+  schedule:
+    # 5:30 pm Dhaka (UTC+6) = 11:30 UTC. Runs daily; it only writes weeks that are
+    # new (> LAST_WEEK_DONE and not already in the sheet), so extra runs are harmless.
+    - cron: "02 03 * * *"
+  workflow_dispatch:
+    inputs:
+      last_week_done:
+        description: "Only process weeks after this number"
+        required: false
+        default: "123"
+      dry_run:
+        description: "Parse but do not write to the sheet (true/false)"
+        required: false
+        default: "false"
+
+concurrency:
+  group: ju-weekly
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements_ju.txt
+
+      - name: System packages (pdftotext)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      - name: Python packages
+        run: pip install -r requirements_ju.txt
+
+      - name: Headless Chromium (the reports page is JavaScript-rendered)
+        run: python -m playwright install --with-deps chromium
+
+      - name: Download new weekly PDFs and update the sheet
+        env:
+          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+          SHEET_ID: 164-CIeR5mSutgIUPVS2EteQy1lGMSEzFhHj7iCLqzqg
+          LAST_WEEK_DONE: ${{ github.event.inputs.last_week_done || '123' }}
+          TAB_LIGHT_GRAVID: ju_adult_mosquito
+          TAB_TABLE2: ju_larvae
+          TAB_TABLE5: ju_bi_ci
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python ju_weekly_update.py --dry-run
+          else
+            python ju_weekly_update.py
+          fi
