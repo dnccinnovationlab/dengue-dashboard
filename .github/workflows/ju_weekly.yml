@@ -44,7 +44,7 @@ jobs:
 
       - name: Download new weekly PDFs and update the sheet
         env:
-          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GSHEET_JSON }}
           SHEET_ID: 164-CIeR5mSutgIUPVS2EteQy1lGMSEzFhHj7iCLqzqg
           LAST_WEEK_DONE: ${{ github.event.inputs.last_week_done || '123' }}
           TAB_LIGHT_GRAVID: ju_adult_mosquito
